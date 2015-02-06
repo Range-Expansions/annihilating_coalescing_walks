@@ -71,8 +71,32 @@ class Lattice():
                 else:
                     output_str += str(cur_wall.wall_type[1])
         else:
-            print 'Zero walls...I cannot determine lattice information!'''
+            print 'No walls...I cannot determine lattice information from walls!'''
         return output_str
+
+    def get_lattice_from_walls(self):
+        '''Returns the lattice array'''
+
+        output_lattice = np.empty(self.lattice_size)
+        num_walls = self.walls.shape[0]
+        # Loop through the walls in terms of position
+
+        if num_walls > 2:
+            cur_wall = self.walls[0]
+            for i in range(self.lattice_size):
+                if cur_wall.position == i:
+                    cur_wall = cur_wall.wall_neighbors[1]
+                output_lattice[i] = cur_wall.wall_type[0]
+        elif num_walls == 1:
+            cur_wall = self.walls[0]
+            for i in range(self.lattice_size):
+                if i < cur_wall.position:
+                    output_lattice[i] = cur_wall.wall_type[0]
+                else:
+                    output_lattice[i] = cur_wall.wall_type[1]
+        else:
+            print 'No walls...I cannot determine lattice information from walls!'''
+        return output_lattice
 
     def collide(self, left_wall, right_wall):
         '''Collides two walls. Make sure the wall that was on the left
@@ -132,18 +156,30 @@ class Wall():
 
 class Neutral_Lattice_Simulation():
 
-    def __init__(self, lattice_size=100, num_types=3):
+    def __init__(self, lattice_size=100, num_types=3, record_every = 1):
 
         self.lattice_size = lattice_size
         self.num_types = num_types
         self.lattice = Lattice(lattice_size, num_types)
 
+        self.time_array = None
+        self.record_every = 1
+
     def run(self, num_steps):
+
+        self.time_array = np.zeros(num_steps + 1)
+
+        cur_time = 0
+        time_remainder = 0
+        num_recorded = 1
         for i in range(num_steps):
             # Check to make sure there are at least 2 walls remaining
             if self.lattice.walls.shape[0] > 1:
                 index = np.random.randint(0, self.lattice.walls.shape[0])
                 current_wall = self.lattice.walls[index]
+                # Determine time increment before deletion of walls
+                delta_t = 1./self.lattice.walls.shape[0]
+
                 # Draw a random number
                 rand_num = np.random.rand()
                 if rand_num < .5:
@@ -169,6 +205,16 @@ class Neutral_Lattice_Simulation():
                     right_neighbor = current_wall.wall_neighbors[RIGHT]
                     if current_wall.position == right_neighbor.position:
                         self.lattice.collide(current_wall, right_neighbor)
+
+                #### Record information ####
+                cur_time += delta_t
+                time_remainder += delta_t
+
+                if time_remainder >= 1: # Record this step
+                    self.time_array[num_recorded] = cur_time
+                    num_recorded += 1
+                    time_remainder -= 1
+
             else:
                 print self.lattice.walls.shape[0] , 'walls remaining, done!'
                 break
