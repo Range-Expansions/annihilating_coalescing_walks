@@ -163,11 +163,13 @@ class Neutral_Lattice_Simulation():
         self.lattice = Lattice(lattice_size, num_types)
 
         self.time_array = None
-        self.record_every = 1
+        self.lattice_array = None
+        self.record_every = record_every
 
     def run(self, num_steps):
 
         self.time_array = np.zeros(num_steps + 1)
+        self.lattice_array = np.ones((num_steps, self.lattice_size))
 
         cur_time = 0
         time_remainder = 0
@@ -212,9 +214,10 @@ class Neutral_Lattice_Simulation():
 
                 if time_remainder >= 1: # Record this step
                     self.time_array[num_recorded] = cur_time
+                    self.lattice_array[num_recorded] = self.lattice.get_lattice_from_walls()
+
                     num_recorded += 1
                     time_remainder -= 1
-
             else:
                 print self.lattice.walls.shape[0] , 'walls remaining, done!'
                 break
