@@ -52,6 +52,7 @@ class Lattice():
         output_str = ''
         num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
+
         cur_wall = self.walls[0]
         for i in range(self.lattice_size):
             if cur_wall.position == i:
@@ -99,38 +100,6 @@ class Lattice():
             # Do the actual annihilation
             self.walls = self.walls[~collided_indices]
 
-    def run(self, num_steps):
-
-        for i in range(num_steps):
-
-            index = np.random.randint(0, self.walls.shape[0])
-            current_wall = self.walls[index]
-            # Draw a random number
-            rand_num = np.random.rand()
-            if rand_num < .5:
-                jump_direction = RIGHT
-                current_wall.position += 1
-                # No mod here, as we have to do extra stuff if there is a problem.
-                if current_wall.position == self.lattice_size:
-                    current_wall.position = 0
-                    self.walls = np.concatenate(([current_wall], self.walls[0:-1]))
-            else:
-                jump_direction = LEFT
-                current_wall.position = current_wall.position -1
-                if current_wall.position < 0:
-                    current_wall.position = self.lattice_size - 1
-                    self.walls = np.concatenate((self.walls[1:], [current_wall]))
-
-            new_wall = None
-            if jump_direction == LEFT:
-                left_neighbor = current_wall.wall_neighbors[LEFT]
-                if current_wall.position == left_neighbor.position:
-                    self.collide(left_neighbor, current_wall)
-            if jump_direction == RIGHT:
-                right_neighbor = current_wall.wall_neighbors[RIGHT]
-                if current_wall.position == right_neighbor.position:
-                    self.collide(current_wall, right_neighbor)
-
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
         self.position = position
@@ -147,3 +116,46 @@ class Wall():
 
     def __lt__(self, other):
         return self.position < other.position
+
+class Neutral_Lattice_Simulation():
+
+    def __init__(self, lattice_size=100, num_types=3):
+
+        self.lattice_size = lattice_size
+        self.num_types = num_types
+        self.lattice = Lattice(lattice_size, num_types)
+
+    def run(self, num_steps):
+        for i in range(num_steps):
+            # Check to make sure there are at least 2 walls remaining
+            if self.lattice.walls.shape[0] > 1:
+                index = np.random.randint(0, self.lattice.walls.shape[0])
+                current_wall = self.lattice.walls[index]
+                # Draw a random number
+                rand_num = np.random.rand()
+                if rand_num < .5:
+                    jump_direction = RIGHT
+                    current_wall.position += 1
+                    # No mod here, as we have to do extra stuff if there is a problem.
+                    if current_wall.position == self.lattice_size:
+                        current_wall.position = 0
+                        self.walls = np.concatenate(([current_wall], self.lattice.walls[0:-1]))
+                else:
+                    jump_direction = LEFT
+                    current_wall.position = current_wall.position -1
+                    if current_wall.position < 0:
+                        current_wall.position = self.lattice_size - 1
+                        self.lattice.walls = np.concatenate((self.lattice.walls[1:], [current_wall]))
+
+                new_wall = None
+                if jump_direction == LEFT:
+                    left_neighbor = current_wall.wall_neighbors[LEFT]
+                    if current_wall.position == left_neighbor.position:
+                        self.lattice.collide(left_neighbor, current_wall)
+                if jump_direction == RIGHT:
+                    right_neighbor = current_wall.wall_neighbors[RIGHT]
+                    if current_wall.position == right_neighbor.position:
+                        self.lattice.collide(current_wall, right_neighbor)
+            else:
+                print self.lattice.walls.shape[0] , 'walls remaining, done!'
+                break
