@@ -53,12 +53,25 @@ class Lattice():
         num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
-        cur_wall = self.walls[0]
-        for i in range(self.lattice_size):
-            if cur_wall.position == i:
-                cur_wall = cur_wall.wall_neighbors[1]
-                output_str += '_'
-            output_str += str(cur_wall.wall_type[0])
+        if num_walls > 2:
+            cur_wall = self.walls[0]
+            for i in range(self.lattice_size):
+                if cur_wall.position == i:
+                    cur_wall = cur_wall.wall_neighbors[1]
+                    output_str += '_'
+                output_str += str(cur_wall.wall_type[0])
+        elif num_walls == 1:
+            cur_wall = self.walls[0]
+            for i in range(self.lattice_size):
+                if i < cur_wall.position:
+                    output_str += str(cur_wall.wall_type[0])
+                elif i == cur_wall.position:
+                    output_str += '_'
+                    output_str += str(cur_wall.wall_type[1])
+                else:
+                    output_str += str(cur_wall.wall_type[1])
+        else:
+            print 'Zero walls...I cannot determine lattice information!'''
         return output_str
 
     def collide(self, left_wall, right_wall):
