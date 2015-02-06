@@ -16,35 +16,23 @@ class Lattice():
         for cur_position in wall_positions:
             wall_list.append(Wall(cur_position))
         wall_list = np.array(wall_list)
+
         # Sort the wall list
         wall_list = np.sort(wall_list, axis=None)
+
         # Assign neighbors
         for i in range(wall_list.shape[0]):
-            if i == 0:
-                left_wall = wall_list[wall_list.shape[0] - 1]
-                right_wall = wall_list[i + 1]
-            if i == wall_list.shape[0] - 1:
-                left_wall = wall_list[i - 1]
-                right_wall = wall_list[0]
-            else:
-                left_wall = wall_list[i - 1]
-                right_wall = wall_list[i + 1]
-
+            left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
+            right_wall = wall_list[np.mod(i + 1), wall_list.shape[0]]
             wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
+
         # Indicate what type of wall the wall is
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
             cur_position = wall_list[i].position
 
-            if cur_position == 0:
-                left_index = self.lattice_size - 1
-                right_index = cur_position
-            if cur_position == (self.lattice_size - 1):
-                left_index = cur_position - 1
-                right_index = 0
-            else:
-                left_index = cur_position - 1
-                right_index = cur_position
+            left_index = np.mod(cur_position - 1, self.lattice_size)
+            right_index = cur_position
 
             left_of_kink = self.lattice[left_index]
             right_of_kink = self.lattice[right_index]
