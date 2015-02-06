@@ -30,7 +30,7 @@ class Lattice():
                 left_wall = wall_list[i - 1]
                 right_wall = wall_list[i + 1]
 
-            wall_list[i].wall_neighbors = np.array(left_wall, right_wall)
+            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
         # Indicate what type of wall the wall is
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
@@ -65,16 +65,75 @@ class Lattice():
             if cur_wall.position == i:
                 cur_wall = cur_wall.wall_neighbors[1]
                 output_str += '_'
-            output_str += str(cur_wall.wall_type[1])
+            output_str += str(cur_wall.wall_type[0])
         return output_str
+
+    def collide(self, left_wall, right_wall):
+        '''Collides two walls. Make sure the wall that was on the left
+        is passed first.'''
+
+        new_wall = None
+        type_after_collision_left = left_wall.wall_type[0]
+        type_after_collision_right = right_wall.wall_type[1]
+
+        if type_after_collision_left != type_after_collision_right:
+            new_position = left_wall.position
+            new_type = np.array([type_after_collision_left, type_after_collision_right])
+            new_wall = Wall(new_position, wall_type = new_type)
+
+        collided_indices = (self.walls == left_wall.position)
+        first_index = np.where(collided_indices)[0][0]
+        if new_wall is not None: # Coalesce
+            self.walls[first_index] = new_wall
+            np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
+            # Redo neighbors of those effected
+
+            left_index = None
+            right_index = None
+
+            if first_index == 0:
+                left_index = self.walls.shape[0] - 1
+                right_index = first_index + 1
+            elif first_index == self.walls.shape[0] - 1:
+                left_index = first_index - 1
+                right_index = 0
+            else:
+                left_index = first_index - 1
+                right_index = first_index + 1
+
+            left_wall = self.walls[left_index]
+            right_wall = self.walls[right_index]
+
+            left_wall.wall_neighbors[1] = new_wall
+            new_wall.wall_neighbors = np.array([left_wall, right_wall])
+            right_wall.wall_neighbors[0] = new_wall
+        else: #Annihilate
+            self.walls = self.walls[~collided_indices]
+            # Redo neighbors
+
+            if first_index == 0:
+                left_index = self.walls.shape[0] - 1
+                right_index = first_index
+            elif first_index == self.walls.shape[0] - 1:
+                left_index = first_index - 1
+                right_index = 0
+            else:
+                left_index = first_index - 1
+                right_index = first_index
+
+            left_wall = self.walls[first_index]
+            right_wall = self.walls[right_index]
+
+            left_wall.wall_neighbors[1] = right_wall
+            right_wall.wall_neighbors[0] = left_wall
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
         self.position = position
-        # Neighbors are neighboring walls!
+        # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
         self.wall_neighbors = wall_neighbors
         # The wall type indicates the type of kink
-        self.wall_type = None
+        self.wall_type = wall_type
 
     def __eq__(self, other):
         return self.position == other.position
@@ -84,23 +143,3 @@ class Wall():
 
     def __lt__(self, other):
         return self.position < other.position
-
-    def collide(self, other):
-        '''Collides two walls, returns none or a new wall as appropriate.'''
-        # It's not clear which is on the left & which is on the right
-        if self.wall_neighbors[1] == other.neighbors[0]:
-            # self is on the left, other is on the right
-            if self.wall_neighbors[0] == other.neighbors[1]:
-                return None
-            else:
-                new_domain = np.array([self.wall_neighbors[0], other.neighbors[1]])
-                new_wall = Wall(self.position, new_domain)
-                return new_wall
-        elif other.neighbors[1] == self.wall_neighbors[0]:
-            #self is on the right, other is on the left
-            if other.neighbors[0] == self.wall_neighbors[1]:
-                return None
-            else:
-                new_domain = np.array([other.neighbors[0], self.wall_neighbors[1]])
-                new_wall = Wall(self.position, new_domain)
-                return new_wall
