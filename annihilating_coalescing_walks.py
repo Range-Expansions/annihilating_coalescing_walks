@@ -81,7 +81,7 @@ class Lattice():
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = Wall(new_position, wall_type = new_type)
 
-        collided_indices = (self.walls == left_wall.position)
+        collided_indices = (self.walls == left_wall)
         first_index = np.where(collided_indices)[0][0]
         if new_wall is not None: # Coalesce
             self.walls[first_index] = new_wall
@@ -121,7 +121,7 @@ class Lattice():
                 left_index = first_index - 1
                 right_index = first_index
 
-            left_wall = self.walls[first_index]
+            left_wall = self.walls[left_index]
             right_wall = self.walls[right_index]
 
             left_wall.wall_neighbors[1] = right_wall
