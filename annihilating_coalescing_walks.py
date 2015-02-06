@@ -16,13 +16,13 @@ class Lattice():
             if wall_locations[i]:
                 if i == 0:
                     left_neighbor = self.lattice[self.lattice_size - 1]
-                    right_neighbor = self.lattice[i + 1]
+                    right_neighbor = self.lattice[i]
                 if i == self.lattice_size - 1:
                     left_neighbor = self.lattice[i - 1]
                     right_neighbor = self.lattice[0]
                 else:
                     left_neighbor = self.lattice[i - 1]
-                    right_neighbor = self.lattice[i + 1]
+                    right_neighbor = self.lattice[i]
                 neighbors = np.array([left_neighbor, right_neighbor])
                 wall_list.append(Wall(i, neighbors))
         return np.array(wall_list)
