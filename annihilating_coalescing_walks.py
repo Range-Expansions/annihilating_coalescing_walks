@@ -84,8 +84,9 @@ class Lattice():
         collided_indices = (self.walls == left_wall)
         first_index = np.where(collided_indices)[0][0]
         if new_wall is not None: # Coalesce
+            print 'coalesce!'
             self.walls[first_index] = new_wall
-            np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
+            self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
             # Redo neighbors of those effected
 
             left_index = None
@@ -108,24 +109,17 @@ class Lattice():
             new_wall.wall_neighbors = np.array([left_wall, right_wall])
             right_wall.wall_neighbors[0] = new_wall
         else: #Annihilate
+            print 'annihilate!'
+
+            # Redo neighbors before annihilation for simplicity
+            wall_before_index = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
+            wall_two_after_index = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
+
+            wall_before_index.wall_neighbors[1] = wall_two_after_index
+            wall_two_after_index.wall_neighbors[0] = wall_before_index
+
+            # Do the actual annihilation
             self.walls = self.walls[~collided_indices]
-            # Redo neighbors
-
-            if first_index == 0:
-                left_index = self.walls.shape[0] - 1
-                right_index = first_index
-            elif first_index == self.walls.shape[0] - 1:
-                left_index = first_index - 1
-                right_index = 0
-            else:
-                left_index = first_index - 1
-                right_index = first_index
-
-            left_wall = self.walls[left_index]
-            right_wall = self.walls[right_index]
-
-            left_wall.wall_neighbors[1] = right_wall
-            right_wall.wall_neighbors[0] = left_wall
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
