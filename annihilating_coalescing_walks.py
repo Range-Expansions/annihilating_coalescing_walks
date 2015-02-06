@@ -23,7 +23,7 @@ class Lattice():
         # Assign neighbors
         for i in range(wall_list.shape[0]):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
-            right_wall = wall_list[np.mod(i + 1), wall_list.shape[0]]
+            right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
             wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
 
         # Indicate what type of wall the wall is
