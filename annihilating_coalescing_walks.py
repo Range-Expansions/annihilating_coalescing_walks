@@ -64,4 +64,21 @@ class Wall():
         return self.position < other.position
 
     def collide(self, other):
-        print 'waka'
+        '''Collides two walls, returns none or a new wall as appropriate.'''
+        # It's not clear which is on the left & which is on the right
+        if self.neighbors[1] == other.neighbors[0]:
+            # self is on the left, other is on the right
+            if self.neighbors[0] == other.neighbors[1]:
+                return None
+            else:
+                new_domain = np.array([self.neighbors[0], other.neighbors[1]])
+                new_wall = Wall(self.position, new_domain)
+                return new_wall
+        elif other.neighbors[1] == self.neighbors[0]:
+            #self is on the right, other is on the left
+            if other.neighbors[0] == self.neighbors[1]:
+                return None
+            else:
+                new_domain = np.array([other.neighbors[0], self.neighbors[1]])
+                new_wall = Wall(self.position, new_domain)
+                return new_wall
