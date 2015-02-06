@@ -2,7 +2,11 @@ __author__ = 'bryan'
 
 import numpy as np
 
+LEFT = 0
+RIGHT = 1
+
 class Lattice():
+
     def __init__(self, lattice_size, num_types=3):
         self.lattice_size = lattice_size
         self.lattice = np.random.randint(0, num_types, lattice_size)
@@ -72,7 +76,6 @@ class Lattice():
         collided_indices = (self.walls == left_wall)
         first_index = np.where(collided_indices)[0][0]
         if new_wall is not None: # Coalesce
-            print 'coalesce!'
             # Redo neighbors first
             self.walls[first_index] = new_wall
             wall_after = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
@@ -85,7 +88,6 @@ class Lattice():
             # Delete the undesired wall
             self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
         else: #Annihilate
-            print 'annihilate!'
 
             # Redo neighbors before annihilation for simplicity
             wall_before_index = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
@@ -96,6 +98,38 @@ class Lattice():
 
             # Do the actual annihilation
             self.walls = self.walls[~collided_indices]
+
+    def run(self, num_steps):
+
+        for i in range(num_steps):
+
+            index = np.random.randint(0, self.walls.shape[0])
+            current_wall = self.walls[index]
+            # Draw a random number
+            rand_num = np.random.rand()
+            if rand_num < .5:
+                jump_direction = RIGHT
+                current_wall.position += 1
+                # No mod here, as we have to do extra stuff if there is a problem.
+                if current_wall.position == self.lattice_size:
+                    current_wall.position = 0
+                    self.walls = np.concatenate(([current_wall], self.walls[0:-1]))
+            else:
+                jump_direction = LEFT
+                current_wall.position = current_wall.position -1
+                if current_wall.position < 0:
+                    current_wall.position = self.lattice_size - 1
+                    self.walls = np.concatenate((self.walls[1:], [current_wall]))
+
+            new_wall = None
+            if jump_direction == LEFT:
+                left_neighbor = current_wall.wall_neighbors[LEFT]
+                if current_wall.position == left_neighbor.position:
+                    self.collide(left_neighbor, current_wall)
+            if jump_direction == RIGHT:
+                right_neighbor = current_wall.wall_neighbors[RIGHT]
+                if current_wall.position == right_neighbor.position:
+                    self.collide(current_wall, right_neighbor)
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
