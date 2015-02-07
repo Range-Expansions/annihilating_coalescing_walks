@@ -8,7 +8,7 @@ RIGHT = 1
 ANNIHILATE = 0
 COALESCE = 1
 
-class Lattice():
+class Lattice(object):
 
     def __init__(self, lattice_size, num_types=3):
         self.lattice_size = lattice_size
@@ -143,7 +143,7 @@ class Lattice():
             return ANNIHILATE
 
 
-class Wall():
+class Wall(object):
     def __init__(self, position, wall_neighbors = None, wall_type = None):
         self.position = position
         # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
@@ -164,11 +164,45 @@ class Wall():
         # This is the neutral case
         random_num = np.random.rand()
         if random_num < 0.5:
-            return LEFT
-        else:
             return RIGHT
+        else:
+            return LEFT
 
-class Lattice_Simulation():
+class Selection_Lattice(Lattice):
+    def _init__(self, delta_prob_dict, lattice_size, num_types=3):
+        super(Selection_Lattice, self).__init__(self, lattice_size, num_types=num_types)
+        self.delta_prob_dict = delta_prob_dict
+
+    def get_walls(self):
+        walls = super(Selection_Lattice, self).get_walls()
+        for i in range(walls.shape[0]):
+            walls[i] = Selection_Wall.get_selection_wall_from_neutral(walls[i], self.delta_prob_dict)
+        return walls
+
+class Selection_Wall(Wall):
+    '''One must define which wall gets a selective advantage. Let's say the biggest.'''
+
+    def __init__(self, position, wall_neighbors=None, wall_type = None, delta_prob_dict = None):
+        '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
+        super(Selection_Wall, self).__init__(self, position, wall_neighbors, wall_type)
+        self.delta_prob_dict = None
+
+    def get_jump_direction(self):
+        # Get the change in probability of jumping left and right.
+        right_prob_change = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
+
+        random_num = np.random.rand()
+        if random_num < 0.5 + right_prob_change:
+            return RIGHT
+        else:
+            return LEFT
+
+    @staticmethod
+    def get_selection_wall_from_neutral(neutral_wall, delta_prob_dict):
+        return Selection_Wall(neutral_wall.position, wall_neighbors = neutral_wall.wall_neighbors,
+                              wall_type = neutral_wall.wall_type, delta_prob_dict = delta_prob_dict)
+
+class Lattice_Simulation(object):
 
     def __init__(self, lattice_size=100, num_types=3, record_every = 1,
                  record_lattice=True):
@@ -293,3 +327,11 @@ class Lattice_Simulation():
         self.annihilation_array = self.annihilation_array[0:num_recorded]
         self.coalescence_array = self.coalescence_array[0:num_recorded]
         self.num_walls_array = self.num_walls_array[0:num_recorded]
+
+class Selection_Lattice_Simulation(Lattice_Simulation):
+
+    def __init__(self, delta_prob_dict, **kwargs):
+        super(Selection_Lattice_Simulation, self).__init__(**kwargs)
+
+        self.delta_prob_dict = delta_prob_dict
+        self.lattice = Selection_Lattice(self.delta_prob_dict, self.lattice_size, num_types = self.num_types)
