@@ -253,10 +253,10 @@ class Neutral_Lattice_Simulation():
 
             step_count += 1
 
-        if step_count == num_record_steps:
-            print 'Used up available number of steps.'
-            print step_count
-            print num_record_steps
+        if num_recorded == num_record_steps:
+            print 'Used up available amount of time.'
+        elif self.lattice.walls.shape[0] < 2:
+            print 'There are less than two walls remaining.'
 
         print self.lattice.walls.shape[0] , 'walls remaining, done!'
         # Cut the output appropriately
