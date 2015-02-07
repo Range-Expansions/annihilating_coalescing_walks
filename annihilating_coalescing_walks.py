@@ -166,26 +166,36 @@ class Neutral_Lattice_Simulation():
 
         self.lattice_size = lattice_size
         self.num_types = num_types
+        self.record_every = record_every
+
         self.lattice = Lattice(lattice_size, num_types)
 
         self.time_array = None
         self.lattice_history = None
+        self.coalescence_array = None
+        self.annihilation_array = None
 
-        self.record_every = record_every
 
-    def run(self, num_steps):
+    def run(self, max_time):
 
-        self.time_array = np.zeros(num_steps + 1)
-        self.lattice_history = -1*np.ones((num_steps + 1, self.lattice_size))
+        num_record_steps = max_time / self.record_every + 1
+
+        self.time_array = np.zeros(num_record_steps)
+        self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size))
         self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
+
+        self.coalescence_array = -1*np.ones(num_record_steps)
+        self.annihilation_array = -1*np.ones(num_record_steps)
 
         cur_time = 0
         time_remainder = 0
         num_recorded = 1
 
         step_count = 0
+        annihilation_count_per_time = 0
+        coalescence_count_per_time = 0
 
-        while (self.lattice.walls.shape[0] > 1) and (step_count < num_steps):
+        while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
 
             index = np.random.randint(0, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[index]
@@ -203,20 +213,27 @@ class Neutral_Lattice_Simulation():
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
             else:
                 jump_direction = LEFT
-                current_wall.position = current_wall.position -1
+                current_wall.position -= 1
                 if current_wall.position < 0:
                     current_wall.position = self.lattice_size - 1
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
 
             new_wall = None
+            collision_type = None
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
                 if current_wall.position == left_neighbor.position:
-                    self.lattice.collide(left_neighbor, current_wall)
+                    collision_type = self.lattice.collide(left_neighbor, current_wall)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
                 if current_wall.position == right_neighbor.position:
-                    self.lattice.collide(current_wall, right_neighbor)
+                    collision_type = self.lattice.collide(current_wall, right_neighbor)
+
+            if collision_type is not None:
+                if collision_type == ANNIHILATE:
+                    annihilation_count_per_time += 1
+                else:
+                    coalescence_count_per_time += 1
 
             #### Record information ####
             cur_time += delta_t
@@ -226,13 +243,20 @@ class Neutral_Lattice_Simulation():
                 self.time_array[num_recorded] = cur_time
                 self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
+                self.annihilation_array[num_recorded] = annihilation_count_per_time
+                self.coalescence_array[num_recorded] = coalescence_count_per_time
+                annihilation_count_per_time = 0
+                coalescence_count_per_time = 0
+
                 num_recorded += 1
                 time_remainder -= self.record_every
 
             step_count += 1
 
-        if step_count == num_steps:
+        if step_count == num_record_steps:
             print 'Used up available number of steps.'
+            print step_count
+            print num_record_steps
 
         print self.lattice.walls.shape[0] , 'walls remaining, done!'
         # Cut the output appropriately
