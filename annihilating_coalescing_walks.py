@@ -330,8 +330,13 @@ class Lattice_Simulation(object):
 
 class Selection_Lattice_Simulation(Lattice_Simulation):
 
-    def __init__(self, delta_prob_dict, **kwargs):
-        super(Selection_Lattice_Simulation, self).__init__(**kwargs)
+    def __init__(self, delta_prob_dict, lattice_size=100, num_types=3, record_every = 1,
+                 record_lattice=True):
+        super(Selection_Lattice_Simulation, self).__init__(lattice_size = lattice_size,
+                                                           num_types = num_types,
+                                                           record_every = record_every,
+                                                           record_lattice = record_lattice)
 
         self.delta_prob_dict = delta_prob_dict
-        self.lattice = Selection_Lattice(self.delta_prob_dict, self.lattice_size, num_types = self.num_types)
+        self.lattice = Selection_Lattice(self.delta_prob_dict, lattice_size = lattice_size, num_types = num_types)
+        # TODO figure out why I am getting bizarre duplicate argument problems...
