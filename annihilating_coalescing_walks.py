@@ -222,4 +222,7 @@ class Neutral_Lattice_Simulation():
                     time_remainder -= 1
             else:
                 print self.lattice.walls.shape[0] , 'walls remaining, done!'
+                # Cut the output appropriately
+                self.lattice_history = self.lattice_history[0:num_recorded, :]
+
                 break
