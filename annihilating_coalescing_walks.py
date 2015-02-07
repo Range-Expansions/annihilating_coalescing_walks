@@ -56,7 +56,7 @@ class Lattice():
         num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
-        if num_walls > 2:
+        if num_walls > 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
                 if cur_wall.position == i:
@@ -84,7 +84,7 @@ class Lattice():
         num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
-        if num_walls > 2:
+        if num_walls > 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
                 if cur_wall.position == i:
@@ -170,6 +170,7 @@ class Neutral_Lattice_Simulation():
 
         self.time_array = None
         self.lattice_history = None
+
         self.record_every = record_every
 
     def run(self, num_steps):
@@ -181,54 +182,59 @@ class Neutral_Lattice_Simulation():
         cur_time = 0
         time_remainder = 0
         num_recorded = 1
-        for i in range(num_steps):
-            # Check to make sure there are at least 2 walls remaining
-            if self.lattice.walls.shape[0] > 1:
-                index = np.random.randint(0, self.lattice.walls.shape[0])
-                current_wall = self.lattice.walls[index]
-                # Determine time increment before deletion of walls
-                delta_t = 1./self.lattice.walls.shape[0]
 
-                # Draw a random number
-                rand_num = np.random.rand()
-                if rand_num < .5:
-                    jump_direction = RIGHT
-                    current_wall.position += 1
-                    # No mod here, as we have to do extra stuff if there is a problem.
-                    if current_wall.position == self.lattice_size:
-                        current_wall.position = 0
-                        self.lattice.walls = np.roll(self.lattice.walls, 1)
-                else:
-                    jump_direction = LEFT
-                    current_wall.position = current_wall.position -1
-                    if current_wall.position < 0:
-                        current_wall.position = self.lattice_size - 1
-                        self.lattice.walls = np.roll(self.lattice.walls, -1)
+        step_count = 0
 
-                new_wall = None
-                if jump_direction == LEFT:
-                    left_neighbor = current_wall.wall_neighbors[LEFT]
-                    if current_wall.position == left_neighbor.position:
-                        self.lattice.collide(left_neighbor, current_wall)
-                if jump_direction == RIGHT:
-                    right_neighbor = current_wall.wall_neighbors[RIGHT]
-                    if current_wall.position == right_neighbor.position:
-                        self.lattice.collide(current_wall, right_neighbor)
+        while (self.lattice.walls.shape[0] > 1) and (step_count < num_steps):
 
-                #### Record information ####
-                cur_time += delta_t
-                time_remainder += delta_t
+            index = np.random.randint(0, self.lattice.walls.shape[0])
+            current_wall = self.lattice.walls[index]
+            # Determine time increment before deletion of walls
+            delta_t = 1./self.lattice.walls.shape[0]
 
-                if time_remainder >= self.record_every: # Record this step
-                    self.time_array[num_recorded] = cur_time
-                    self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
-
-                    num_recorded += 1
-                    time_remainder -= self.record_every
-
+            # Draw a random number
+            rand_num = np.random.rand()
+            if rand_num < .5:
+                jump_direction = RIGHT
+                current_wall.position += 1
+                # No mod here, as we have to do extra stuff if there is a problem.
+                if current_wall.position == self.lattice_size:
+                    current_wall.position = 0
+                    self.lattice.walls = np.roll(self.lattice.walls, 1)
             else:
-                print self.lattice.walls.shape[0] , 'walls remaining, done!'
-                # Cut the output appropriately
-                self.lattice_history = self.lattice_history[0:num_recorded, :]
+                jump_direction = LEFT
+                current_wall.position = current_wall.position -1
+                if current_wall.position < 0:
+                    current_wall.position = self.lattice_size - 1
+                    self.lattice.walls = np.roll(self.lattice.walls, -1)
 
-                break
+            new_wall = None
+            if jump_direction == LEFT:
+                left_neighbor = current_wall.wall_neighbors[LEFT]
+                if current_wall.position == left_neighbor.position:
+                    self.lattice.collide(left_neighbor, current_wall)
+            if jump_direction == RIGHT:
+                right_neighbor = current_wall.wall_neighbors[RIGHT]
+                if current_wall.position == right_neighbor.position:
+                    self.lattice.collide(current_wall, right_neighbor)
+
+            #### Record information ####
+            cur_time += delta_t
+            time_remainder += delta_t
+
+            if time_remainder >= self.record_every: # Record this step
+                self.time_array[num_recorded] = cur_time
+                self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+
+                num_recorded += 1
+                time_remainder -= self.record_every
+
+            step_count += 1
+
+        if step_count == num_steps:
+            print 'Used up available number of steps.'
+
+        print self.lattice.walls.shape[0] , 'walls remaining, done!'
+        # Cut the output appropriately
+        self.lattice_history = self.lattice_history[0:num_recorded, :]
+
