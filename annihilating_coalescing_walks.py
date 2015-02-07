@@ -5,6 +5,9 @@ import numpy as np
 LEFT = 0
 RIGHT = 1
 
+ANNIHILATE = 0
+COALESCE = 1
+
 class Lattice():
 
     def __init__(self, lattice_size, num_types=3):
@@ -125,6 +128,7 @@ class Lattice():
 
             # Delete the undesired wall
             self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
+            return COALESCE
         else: #Annihilate
 
             # Redo neighbors before annihilation for simplicity
@@ -136,6 +140,8 @@ class Lattice():
 
             # Do the actual annihilation
             self.walls = self.walls[~collided_indices]
+            return ANNIHILATE
+
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
@@ -169,8 +175,7 @@ class Neutral_Lattice_Simulation():
     def run(self, num_steps):
 
         self.time_array = np.zeros(num_steps + 1)
-        self.lattice_history = -1*np.ones((num_steps, self.lattice_size))
-
+        self.lattice_history = -1*np.ones((num_steps + 1, self.lattice_size))
         self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
 
         cur_time = 0
@@ -192,13 +197,13 @@ class Neutral_Lattice_Simulation():
                     # No mod here, as we have to do extra stuff if there is a problem.
                     if current_wall.position == self.lattice_size:
                         current_wall.position = 0
-                        self.walls = np.concatenate(([current_wall], self.lattice.walls[0:-1]))
+                        self.lattice.walls = np.roll(self.lattice.walls, 1)
                 else:
                     jump_direction = LEFT
                     current_wall.position = current_wall.position -1
                     if current_wall.position < 0:
                         current_wall.position = self.lattice_size - 1
-                        self.lattice.walls = np.concatenate((self.lattice.walls[1:], [current_wall]))
+                        self.lattice.walls = np.roll(self.lattice.walls, -1)
 
                 new_wall = None
                 if jump_direction == LEFT:
@@ -214,12 +219,13 @@ class Neutral_Lattice_Simulation():
                 cur_time += delta_t
                 time_remainder += delta_t
 
-                if time_remainder >= 1: # Record this step
+                if time_remainder >= self.record_every: # Record this step
                     self.time_array[num_recorded] = cur_time
                     self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     num_recorded += 1
-                    time_remainder -= 1
+                    time_remainder -= self.record_every
+
             else:
                 print self.lattice.walls.shape[0] , 'walls remaining, done!'
                 # Cut the output appropriately
