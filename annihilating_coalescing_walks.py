@@ -160,7 +160,15 @@ class Wall():
     def __lt__(self, other):
         return self.position < other.position
 
-class Neutral_Lattice_Simulation():
+    def get_jump_direction(self):
+        # This is the neutral case
+        random_num = np.random.rand()
+        if random_num < 0.5:
+            return LEFT
+        else:
+            return RIGHT
+
+class Lattice_Simulation():
 
     def __init__(self, lattice_size=100, num_types=3, record_every = 1,
                  record_lattice=True):
@@ -178,7 +186,6 @@ class Neutral_Lattice_Simulation():
         self.num_walls_array = None
 
         self.record_lattice = record_lattice
-
 
     def run(self, max_time):
 
@@ -213,22 +220,21 @@ class Neutral_Lattice_Simulation():
             # Determine time increment before deletion of walls
             delta_t = 1./self.lattice.walls.shape[0]
 
-            # Draw a random number
-            rand_num = np.random.rand()
-            if rand_num < .5:
-                jump_direction = RIGHT
+            #### Choose a jump direction ####
+            jump_direction = current_wall.get_jump_direction()
+            if jump_direction == RIGHT:
                 current_wall.position += 1
                 # No mod here, as we have to do extra stuff if there is a problem.
                 if current_wall.position == self.lattice_size:
                     current_wall.position = 0
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
             else:
-                jump_direction = LEFT
                 current_wall.position -= 1
                 if current_wall.position < 0:
                     current_wall.position = self.lattice_size - 1
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
 
+            #### Deal with collisions ####
             new_wall = None
             collision_type = None
             if jump_direction == LEFT:
@@ -272,7 +278,6 @@ class Neutral_Lattice_Simulation():
 
                 num_recorded += 1
 
-
             step_count += 1
 
         if num_recorded == num_record_steps:
@@ -288,4 +293,3 @@ class Neutral_Lattice_Simulation():
         self.annihilation_array = self.annihilation_array[0:num_recorded]
         self.coalescence_array = self.coalescence_array[0:num_recorded]
         self.num_walls_array = self.num_walls_array[0:num_recorded]
-
