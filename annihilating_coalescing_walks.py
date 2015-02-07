@@ -174,6 +174,7 @@ class Neutral_Lattice_Simulation():
         self.lattice_history = None
         self.coalescence_array = None
         self.annihilation_array = None
+        self.num_walls_array = None
 
 
     def run(self, max_time):
@@ -186,9 +187,11 @@ class Neutral_Lattice_Simulation():
 
         self.coalescence_array = -1*np.ones(num_record_steps)
         self.annihilation_array = -1*np.ones(num_record_steps)
+        self.num_walls_array = -1*np.ones(num_record_steps)
 
         self.coalescence_array[0] = 0
         self.annihilation_array[0] = 0
+        self.num_walls_array[0] = self.lattice.walls.shape[0]
 
         cur_time = 0
         time_remainder = 0
@@ -243,16 +246,24 @@ class Neutral_Lattice_Simulation():
             time_remainder += delta_t
 
             if time_remainder >= self.record_every: # Record this step
+                # Deal with keeping track of time
                 self.time_array[num_recorded] = cur_time
                 self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+                time_remainder -= self.record_every
 
+                # Count annihilations & coalescences
                 self.annihilation_array[num_recorded] = annihilation_count_per_time
                 self.coalescence_array[num_recorded] = coalescence_count_per_time
                 annihilation_count_per_time = 0
                 coalescence_count_per_time = 0
 
+                # Count the number of walls
+                self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
+
+                # Increment the number recorded
+
                 num_recorded += 1
-                time_remainder -= self.record_every
+
 
             step_count += 1
 
