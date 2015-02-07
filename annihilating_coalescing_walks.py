@@ -286,6 +286,6 @@ class Neutral_Lattice_Simulation():
         if self.record_lattice:
             self.lattice_history = self.lattice_history[0:num_recorded, :]
         self.annihilation_array = self.annihilation_array[0:num_recorded]
-        self.coalescence_array = self.annihilation_array[0:num_recorded]
+        self.coalescence_array = self.coalescence_array[0:num_recorded]
         self.num_walls_array = self.num_walls_array[0:num_recorded]
 
