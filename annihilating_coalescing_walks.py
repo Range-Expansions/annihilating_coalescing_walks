@@ -177,13 +177,15 @@ class Neutral_Lattice_Simulation():
         self.num_walls_array = None
 
 
-    def run(self, max_time):
+    def run(self, max_time, record_lattice = True):
 
         num_record_steps = max_time / self.record_every + 1
 
         self.time_array = np.zeros(num_record_steps)
-        self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size))
-        self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
+
+        if record_lattice:
+            self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size))
+            self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
 
         self.coalescence_array = -1*np.ones(num_record_steps)
         self.annihilation_array = -1*np.ones(num_record_steps)
@@ -248,8 +250,11 @@ class Neutral_Lattice_Simulation():
             if time_remainder >= self.record_every: # Record this step
                 # Deal with keeping track of time
                 self.time_array[num_recorded] = cur_time
-                self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
                 time_remainder -= self.record_every
+
+                # Create lattice
+                if record_lattice:
+                    self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                 # Count annihilations & coalescences
                 self.annihilation_array[num_recorded] = annihilation_count_per_time
