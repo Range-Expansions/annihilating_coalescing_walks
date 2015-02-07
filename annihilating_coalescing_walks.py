@@ -187,6 +187,9 @@ class Neutral_Lattice_Simulation():
         self.coalescence_array = -1*np.ones(num_record_steps)
         self.annihilation_array = -1*np.ones(num_record_steps)
 
+        self.coalescence_array[0] = 0
+        self.annihilation_array[0] = 0
+
         cur_time = 0
         time_remainder = 0
         num_recorded = 1
