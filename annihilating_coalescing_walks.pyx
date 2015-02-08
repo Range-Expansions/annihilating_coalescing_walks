@@ -1,21 +1,73 @@
+#cython: profile=True
+#cython: boundscheck=True
+#cython: initializedcheck=True
+#cython: nonecheck=False
+#cython: wraparound=False
+#cython: cdivision=True
+
 __author__ = 'bryan'
 
+cimport cython
 import numpy as np
+cimport numpy as np
+from cython_gsl cimport *
 
-LEFT = 0
-RIGHT = 1
 
-ANNIHILATE = 0
-COALESCE = 1
+cdef unsigned int LEFT = 0
+cdef unsigned int RIGHT = 1
 
-class Lattice():
+cdef unsigned int ANNIHILATE = 0
+cdef unsigned int COALESCE = 1
 
-    def __init__(self, lattice_size, num_types=3):
+cdef class Wall:
+
+    cdef:
+        public long position
+        public  Wall[:] wall_neighbors
+        public long[:] wall_type
+
+    def __init__(Wall self, long position, Wall[:] wall_neighbors = None, long[:] wall_type = None):
+        self.position = position
+        # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
+        self.wall_neighbors = wall_neighbors
+        # The wall type indicates the type of kink
+        self.wall_type = wall_type
+
+    def __richcmp__(Wall self, Wall other, int operation):
+        if operation == 0: # Less than
+            return self.position < other.position
+        elif operation == 1: # less then or equal to
+            return self.position <= other.position
+        elif operation == 2: # equal to
+            return self.position == other.position
+        elif operation == 3: # not equal to
+            return self.position != other.position
+        elif operation == 4: # greater than
+            return self.position > other.position
+        elif operation == 5: #greater than or equal to
+            return self.position >= other.position
+
+    cdef get_jump_direction(self):
+        # This is the neutral case
+        random_num = np.random.rand()
+        if random_num < 0.5:
+            return RIGHT
+        else:
+            return LEFT
+
+cdef class Lattice:
+
+    cdef:
+        public long lattice_size
+        public long[:] lattice
+        public Wall[:] walls
+
+    def __init__(Lattice self, long lattice_size, long num_types=3):
         self.lattice_size = lattice_size
         self.lattice = np.random.randint(0, num_types, lattice_size)
         self.walls = self.get_walls()
 
-    def get_walls(self):
+    cdef get_walls(Lattice self):
         right_shift = np.roll(self.lattice, 1)
         wall_locations = self.lattice != right_shift
         wall_list = []
@@ -144,7 +196,7 @@ class Lattice():
             self.walls = self.walls[~collided_indices]
             return ANNIHILATE
 
-    def get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
+    cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors=None):
         '''Creates a new wall appropriate for the lattice. Necessary for subclassing.'''
         return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
@@ -159,31 +211,6 @@ class Selection_Lattice(Lattice):
     def get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
-
-class Wall():
-    def __init__(self, position, wall_neighbors = None, wall_type = None):
-        self.position = position
-        # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
-        self.wall_neighbors = wall_neighbors
-        # The wall type indicates the type of kink
-        self.wall_type = wall_type
-
-    def __eq__(self, other):
-        return self.position == other.position
-
-    def __gt__(self, other):
-        return self.position > other.position
-
-    def __lt__(self, other):
-        return self.position < other.position
-
-    def get_jump_direction(self):
-        # This is the neutral case
-        random_num = np.random.rand()
-        if random_num < 0.5:
-            return RIGHT
-        else:
-            return LEFT
 
 class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage. Let's say the biggest.'''
