@@ -47,13 +47,13 @@ cdef class Wall:
     #     elif operation == 5: #greater than or equal to
     #         return self.position >= other.position
 
-    def __cmp__(Wall self, Wall other):
-        if self.position < other.position:
-            return -1
-        elif self.position == other.position:
-            return 0
-        else:
-            return 1
+    #def __cmp__(Wall self, Wall other):
+    #    if self.position < other.position:
+    #        return -1
+    #    elif self.position == other.position:
+    #        return 0
+    #    else:
+    #        return 1
 
     cdef unsigned int get_jump_direction(Wall self, gsl_rng *r):
         # Feed in gsl_rng *r as the random generator
@@ -209,7 +209,7 @@ cdef class Lattice:
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
-        cdef long[:] collision_indices = np.where(self.walls == left_wall)[0]
+        cdef long[:] collision_indices = np.where(self.walls == left_wall)
         if collision_indices.shape[0] < 2:
             print 'Something has gone very wrong, a wall appears to be colliding with itself.'
             print 'The collision indices are:' , np.asarray(collision_indices)
