@@ -175,8 +175,6 @@ cdef class Lattice:
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
-
-
         cdef bool[:] collided_indices = (self.walls == left_wall)
         cdef int[:] collision_indices = np.where(collided_indices)[0]
         if collision_indices.shape[0] < 2:
@@ -221,7 +219,7 @@ cdef class Lattice:
         '''Creates a new wall appropriate for the lattice. Necessary for subclassing.'''
         return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
-class Selection_Lattice(Lattice):
+cdef class Selection_Lattice(Lattice):
 
     def __init__(self, delta_prob_dict, lattice_size, num_types=3):
         self.delta_prob_dict = delta_prob_dict
