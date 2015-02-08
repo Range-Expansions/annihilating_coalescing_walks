@@ -154,6 +154,7 @@ class Selection_Lattice(Lattice):
             self.walls[i] = Selection_Wall.get_selection_wall_from_neutral(self.walls[i], self.delta_prob_dict)
 
     def get_new_collision_wall(self, new_position, wall_type):
+        '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
 class Wall():
