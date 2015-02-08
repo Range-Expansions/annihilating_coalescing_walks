@@ -115,7 +115,10 @@ class Lattice():
             new_wall = self.get_new_collision_wall(new_position, wall_type = new_type)
 
         collided_indices = (self.walls == left_wall)
-        first_index = np.where(collided_indices)[0][0]
+        collision_indices = np.where(collided_indices)[0]
+        if collision_indices.shape[0] < 2:
+            print 'Something has gone very wrong, a wall appears to be colliding with itself.'
+        first_index = collision_indices[0]
         if new_wall is not None: # Coalesce
             # Redo neighbors first
             self.walls[first_index] = new_wall
@@ -208,7 +211,7 @@ class Selection_Wall(Wall):
 class Lattice_Simulation():
 
     def __init__(self, lattice_size=100, num_types=3, record_every = 1,
-                 record_lattice=True):
+                 record_lattice=True, debug=False):
 
         self.lattice_size = lattice_size
         self.num_types = num_types
@@ -223,6 +226,7 @@ class Lattice_Simulation():
         self.num_walls_array = None
 
         self.record_lattice = record_lattice
+        self.debug=debug
 
     def run(self, max_time):
 
@@ -252,13 +256,15 @@ class Lattice_Simulation():
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
 
-            #### Debug
-            print 'Before jump'
-            print [z.position for z in self.lattice.walls]
+            #### Debug ####
+            if self.debug:
+                print 'Before jump'
+                print [z.position for z in self.lattice.walls]
 
             index = np.random.randint(0, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[index]
-            print current_wall.wall_neighbors[LEFT].position, current_wall.position, current_wall.wall_neighbors[RIGHT].position
+            if self.debug:
+                print 'Current wall position:' , current_wall.position
             # Determine time increment before deletion of walls
             delta_t = 1./self.lattice.walls.shape[0]
 
@@ -277,24 +283,25 @@ class Lattice_Simulation():
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
 
             #### Debug ####
-            print 'After jump'
-            print [z.position for z in self.lattice.walls]
+            if self.debug:
+                print 'After jump'
+                print [z.position for z in self.lattice.walls]
 
             #### Deal with collisions ####
             new_wall = None
             collision_type = None
 
-            print current_wall.wall_neighbors[LEFT].position, current_wall.position, current_wall.wall_neighbors[RIGHT].position
-
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
                 if current_wall.position == left_neighbor.position:
-                    print 'Collision!'
+                    if self.debug:
+                        print 'Collision!'
                     collision_type = self.lattice.collide(left_neighbor, current_wall)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
                 if current_wall.position == right_neighbor.position:
-                    print 'Collision!'
+                    if self.debug:
+                        print 'Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor)
 
             if collision_type is not None:
@@ -304,11 +311,9 @@ class Lattice_Simulation():
                     coalescence_count_per_time += 1
 
             #### Debug #####
-            print 'After collision'
-            print [z.position for z in self.lattice.walls]
-            print current_wall.wall_neighbors[LEFT].position, current_wall.position, current_wall.wall_neighbors[RIGHT].position
-            print
-            print
+            if self.debug:
+                print 'After collision'
+                print [z.position for z in self.lattice.walls]
 
             #### Record information ####
             cur_time += delta_t
@@ -338,6 +343,23 @@ class Lattice_Simulation():
 
             step_count += 1
 
+            if self.debug: #This takes a lot of time but helps to pinpoint problems.
+                for i in range(self.lattice.walls.shape[0]):
+                    current_wall = self.lattice.walls[i]
+                    left_neighbor_position = current_wall.wall_neighbors[0].position
+                    right_neighbor_position = current_wall.wall_neighbors[1].position
+
+                    actual_left_position = self.lattice.walls[np.mod(i-1, self.lattice.walls.shape[0])].position
+                    actual_right_position = self.lattice.walls[np.mod(i+1, self.lattice.walls.shape[0])].position
+
+                    if (left_neighbor_position != actual_left_position) or (right_neighbor_position != actual_right_position):
+                        print 'Neighbors are messed up. Neighbor positions and actual positions do not line up.'
+                        print 'Problem position is ', current_wall.position
+                        print 'It thinks neighbors are' , left_neighbor_position , right_neighbor_position
+                        print 'Its neigbors actually are', actual_left_position, actual_right_position
+                print
+                print
+
         if num_recorded == num_record_steps:
             print 'Used up available amount of time.'
         elif self.lattice.walls.shape[0] < 2:
@@ -355,9 +377,9 @@ class Lattice_Simulation():
 class Selection_Lattice_Simulation(Lattice_Simulation):
 
     def __init__(self, delta_prob_dict, lattice_size=100, num_types=3, record_every = 1,
-                 record_lattice=True):
+                 record_lattice=True, debug=False):
         Lattice_Simulation.__init__(self, lattice_size = lattice_size,
                                     num_types = num_types, record_every = record_every,
-                                    record_lattice = record_lattice)
+                                    record_lattice = record_lattice, debug=debug)
         self.delta_prob_dict = delta_prob_dict
         self.lattice = Selection_Lattice(delta_prob_dict, lattice_size, num_types=num_types)
