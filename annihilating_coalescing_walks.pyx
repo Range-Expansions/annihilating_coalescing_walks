@@ -47,9 +47,9 @@ cdef class Wall:
         elif operation == 5: #greater than or equal to
             return self.position >= other.position
 
-    cdef get_jump_direction(self):
-        # This is the neutral case
-        random_num = np.random.rand()
+    cdef unsigned int get_jump_direction(Wall self, gsl_rng *r):
+        # Feed in gsl_rng *r as the random generator
+        cdef double random_num = gsl_rng_uniform(r)
         if random_num < 0.5:
             return RIGHT
         else:
@@ -67,7 +67,7 @@ cdef class Lattice:
         self.lattice = np.random.randint(0, num_types, lattice_size)
         self.walls = self.get_walls()
 
-    cdef get_walls(Lattice self):
+    cdef Wall[:] get_walls(Lattice self):
         right_shift = np.roll(self.lattice, 1)
         wall_locations = self.lattice != right_shift
         wall_list = []
@@ -100,13 +100,16 @@ cdef class Lattice:
 
         return wall_list
 
-    def get_lattice_str(self):
+    cpdef str get_lattice_str(Lattice self):
         '''Assumes walls are already sorted...as they should be..'''
 
         # Gives the lattice string SOLELY in terms of wall position
-        output_str = ''
-        num_walls = self.walls.shape[0]
+        cdef str output_str = ''
+        cdef int num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
+
+        cdef Wall cur_wall
+        cdef int i
 
         if num_walls > 1:
             cur_wall = self.walls[0]
@@ -114,7 +117,7 @@ cdef class Lattice:
                 if cur_wall.position == i:
                     cur_wall = cur_wall.wall_neighbors[1]
                     output_str += '_'
-                output_str += str(cur_wall.wall_type[0])
+                output_str += <str>cur_wall.wall_type[0]
         elif num_walls == 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
@@ -129,12 +132,15 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_str
 
-    def get_lattice_from_walls(self):
+    cpdef int[:] get_lattice_from_walls(Lattice self):
         '''Returns the lattice array'''
 
-        output_lattice = np.empty(self.lattice_size)
-        num_walls = self.walls.shape[0]
+        cdef int[:] output_lattice = np.empty(self.lattice_size)
+        cdef int num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
+
+        cdef Wall cur_wall
+        cdef int i
 
         if num_walls > 1:
             cur_wall = self.walls[0]
@@ -153,47 +159,62 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_lattice
 
-    def collide(self, left_wall, right_wall):
+    cdef collide(Lattice self, Wall left_wall, Wall right_wall):
         '''Collides two walls. Make sure the wall that was on the left
         is passed first.'''
 
-        new_wall = None
-        type_after_collision_left = left_wall.wall_type[0]
-        type_after_collision_right = right_wall.wall_type[1]
+        cdef Wall new_wall = None
+        cdef int type_after_collision_left = left_wall.wall_type[0]
+        cdef int type_after_collision_right = right_wall.wall_type[1]
+
+        cdef int new_position
+        cdef int[:] new_type
 
         if type_after_collision_left != type_after_collision_right:
             new_position = left_wall.position
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
-        collided_indices = (self.walls == left_wall)
-        collision_indices = np.where(collided_indices)[0]
+
+
+        cdef bool[:] collided_indices = (self.walls == left_wall)
+        cdef int[:] collision_indices = np.where(collided_indices)[0]
         if collision_indices.shape[0] < 2:
             print 'Something has gone very wrong, a wall appears to be colliding with itself.'
-        first_index = collision_indices[0]
+        cdef int first_index = collision_indices[0]
+
+        cdef Wall wall_after, wall_before, wall_before_index, wall_two_after_index
+        cdef int before_index, two_after_index
+        cdef int[:] to_delete
+
         if new_wall is not None: # Coalesce
             # Redo neighbors first
             self.walls[first_index] = new_wall
-            wall_after = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
-            wall_before = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
+            wall_after = self.walls[(first_index + 2) % self.walls.shape[0]]
+            wall_before = self.walls[(first_index - 1) % self.walls.shape[0]]
 
             wall_before.wall_neighbors[1] = new_wall
             new_wall.wall_neighbors = np.array([wall_before, wall_after])
             wall_after.wall_neighbors[0] = new_wall
 
             # Delete the undesired wall
-            self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
+            self.walls = np.delete(self.walls, (first_index + 1) % self.walls.shape[0])
             return COALESCE
         else: #Annihilate
             # Redo neighbors before annihilation for simplicity
-            wall_before_index = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
-            wall_two_after_index = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
+
+            before_index = (first_index -1) % self.walls.shape[0]
+            two_after_index = (first_index +2) % self.walls.shape[0]
+
+            wall_before_index = self.walls[before_index % self.walls.shape[0]]
+            wall_two_after_index = self.walls[two_after_index % self.walls.shape[0]]
 
             wall_before_index.wall_neighbors[1] = wall_two_after_index
             wall_two_after_index.wall_neighbors[0] = wall_before_index
 
             # Do the actual annihilation
-            self.walls = self.walls[~collided_indices]
+            to_delete = np.array([before_index, two_after_index])
+            self.walls = np.delete(self.walls, to_delete)
             return ANNIHILATE
 
     cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors=None):
