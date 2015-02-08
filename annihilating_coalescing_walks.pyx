@@ -11,7 +11,7 @@ cimport cython
 import numpy as np
 cimport numpy as np
 from cython_gsl cimport *
-
+from cpython cimport bool
 
 cdef unsigned int LEFT = 0
 cdef unsigned int RIGHT = 1
@@ -117,7 +117,7 @@ cdef class Lattice:
                 if cur_wall.position == i:
                     cur_wall = cur_wall.wall_neighbors[1]
                     output_str += '_'
-                output_str += <str>cur_wall.wall_type[0]
+                output_str += str(cur_wall.wall_type[0])
         elif num_walls == 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
@@ -132,10 +132,10 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_str
 
-    cpdef int[:] get_lattice_from_walls(Lattice self):
+    cpdef long[:] get_lattice_from_walls(Lattice self):
         '''Returns the lattice array'''
 
-        cdef int[:] output_lattice = np.empty(self.lattice_size)
+        cdef long[:] output_lattice = -1*np.ones(self.lattice_size, dtype=np.long)
         cdef int num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
@@ -164,11 +164,11 @@ cdef class Lattice:
         is passed first.'''
 
         cdef Wall new_wall = None
-        cdef int type_after_collision_left = left_wall.wall_type[0]
-        cdef int type_after_collision_right = right_wall.wall_type[1]
+        cdef long type_after_collision_left = left_wall.wall_type[0]
+        cdef long type_after_collision_right = right_wall.wall_type[1]
 
-        cdef int new_position
-        cdef int[:] new_type
+        cdef long new_position
+        cdef long[:] new_type
 
         if type_after_collision_left != type_after_collision_right:
             new_position = left_wall.position
