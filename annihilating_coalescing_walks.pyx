@@ -33,19 +33,27 @@ cdef class Wall:
         # The wall type indicates the type of kink
         self.wall_type = wall_type
 
-    def __richcmp__(Wall self, Wall other, int operation):
-        if operation == 0: # Less than
-            return self.position < other.position
-        elif operation == 1: # less then or equal to
-            return self.position <= other.position
-        elif operation == 2: # equal to
-            return self.position == other.position
-        elif operation == 3: # not equal to
-            return self.position != other.position
-        elif operation == 4: # greater than
-            return self.position > other.position
-        elif operation == 5: #greater than or equal to
-            return self.position >= other.position
+    # def __richcmp__(Wall self, Wall other, int operation):
+    #     if operation == 0: # Less than
+    #         return self.position < other.position
+    #     elif operation == 1: # less then or equal to
+    #         return self.position <= other.position
+    #     elif operation == 2: # equal to
+    #         return self.position == other.position
+    #     elif operation == 3: # not equal to
+    #         return self.position != other.position
+    #     elif operation == 4: # greater than
+    #         return self.position > other.position
+    #     elif operation == 5: #greater than or equal to
+    #         return self.position >= other.position
+
+    def __cmp__(Wall self, Wall other):
+        if self.position < other.position:
+            return -1
+        elif self.position == other.position:
+            return 0
+        else:
+            return 1
 
     cdef unsigned int get_jump_direction(Wall self, gsl_rng *r):
         # Feed in gsl_rng *r as the random generator
@@ -162,7 +170,7 @@ cdef class Lattice:
         '''Returns the lattice array'''
 
         cdef long[:] output_lattice = -1*np.ones(self.lattice_size, dtype=np.long)
-        cdef int num_walls = self.walls.shape[0]
+        cdef long num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
         cdef Wall cur_wall
@@ -185,7 +193,7 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_lattice
 
-    cdef collide(Lattice self, Wall left_wall, Wall right_wall):
+    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall):
         '''Collides two walls. Make sure the wall that was on the left
         is passed first.'''
 
@@ -201,17 +209,19 @@ cdef class Lattice:
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
-        cdef bool[:] collided_indices = (self.walls == left_wall)
-        cdef int[:] collision_indices = np.where(collided_indices)[0]
+        cdef long[:] collision_indices = np.where(self.walls == left_wall)[0]
         if collision_indices.shape[0] < 2:
             print 'Something has gone very wrong, a wall appears to be colliding with itself.'
-        cdef int first_index = collision_indices[0]
+            print 'The collision indices are:' , np.asarray(collision_indices)
+        cdef long first_index = collision_indices[0]
 
         cdef Wall wall_after, wall_before, wall_before_index, wall_two_after_index
-        cdef int before_index, two_after_index
-        cdef int[:] to_delete
+        cdef long before_index, two_after_index
+        cdef long[:] to_delete
 
+        print 'Checking to see if it was annihilation or coalescence...'
         if new_wall is not None: # Coalesce
+            print 'Coalesce!'
             # Redo neighbors first
             self.walls[first_index] = new_wall
             wall_after = self.walls[(first_index + 2) % self.walls.shape[0]]
@@ -225,6 +235,7 @@ cdef class Lattice:
             self.walls = np.delete(self.walls, (first_index + 1) % self.walls.shape[0])
             return COALESCE
         else: #Annihilate
+            print 'Annihilate!'
             # Redo neighbors before annihilation for simplicity
 
             before_index = (first_index -1) % self.walls.shape[0]
@@ -277,6 +288,8 @@ cdef class Lattice_Simulation:
         public long[:] coalescence_array
         public long[:] num_walls_array
 
+        public unsigned long int seed
+
     def __init__(Lattice_Simulation self, long lattice_size=100, long num_types=3, double record_every = 1,
                  bool record_lattice=True, bool debug=False, unsigned long int seed = 0):
 
@@ -295,7 +308,7 @@ cdef class Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-    def run(self, double max_time):
+    def run(Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
         np.random.seed(self.seed)
@@ -370,7 +383,6 @@ cdef class Lattice_Simulation:
                 print [z.position for z in self.lattice.walls]
 
             #### Deal with collisions ####
-            collision_type = None
 
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
@@ -458,10 +470,13 @@ cdef class Lattice_Simulation:
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
-class Selection_Lattice_Simulation(Lattice_Simulation):
+cdef class Selection_Lattice_Simulation(Lattice_Simulation):
 
-    def __init__(self, delta_prob_dict, lattice_size=100, num_types=3, record_every = 1,
-                 record_lattice=True, debug=False):
+    cdef:
+        public dict delta_prob_dict
+
+    def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, long lattice_size=100, long num_types=3,
+                 double record_every = 1, bool record_lattice=True, bool debug=False):
         Lattice_Simulation.__init__(self, lattice_size = lattice_size,
                                     num_types = num_types, record_every = record_every,
                                     record_lattice = record_lattice, debug=debug)
