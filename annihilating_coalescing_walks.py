@@ -142,6 +142,14 @@ class Lattice():
             self.walls = self.walls[~collided_indices]
             return ANNIHILATE
 
+class Selection_Lattice(Lattice):
+
+    def __init__(self, delta_prob_dict, lattice_size, num_types=3):
+        Lattice.__init__(self, lattice_size, num_types=num_types)
+        self.delta_prob_dict = delta_prob_dict
+        # Initialize the walls correctly; make them selection walls!
+        for i in range(self.walls.shape[0]):
+            self.walls[i] = Selection_Wall.get_selection_wall_from_neutral(self.walls[i], self.delta_prob_dict)
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
@@ -167,17 +175,6 @@ class Wall():
             return RIGHT
         else:
             return LEFT
-
-class Selection_Lattice(Lattice):
-    def __init__(self, delta_prob_dict, lattice_size, num_types=3):
-        Lattice.__init__(self, lattice_size, num_types=num_types)
-        self.delta_prob_dict = delta_prob_dict
-
-    def get_walls(self):
-        walls = Lattice.get_walls(self)
-        for i in range(walls.shape[0]):
-            walls[i] = Selection_Wall.get_selection_wall_from_neutral(walls[i], self.delta_prob_dict)
-        return walls
 
 class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage. Let's say the biggest.'''
@@ -333,9 +330,7 @@ class Selection_Lattice_Simulation(Lattice_Simulation):
     def __init__(self, delta_prob_dict, lattice_size=100, num_types=3, record_every = 1,
                  record_lattice=True):
         Lattice_Simulation.__init__(self, lattice_size = lattice_size,
-                                                           num_types = num_types,
-                                                           record_every = record_every,
-                                                           record_lattice = record_lattice)
-
+                                    num_types = num_types, record_every = record_every,
+                                    record_lattice = record_lattice)
         self.delta_prob_dict = delta_prob_dict
-        self.lattice = Selection_Lattice(self.delta_prob_dict, lattice_size, num_types=num_types)
+        self.lattice = Selection_Lattice(delta_prob_dict, lattice_size, num_types=num_types)
