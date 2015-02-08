@@ -21,7 +21,7 @@ class Lattice():
         wall_list = []
         wall_positions = np.where(wall_locations)[0]
         for cur_position in wall_positions:
-            wall_list.append(Wall(cur_position))
+            wall_list.append(self.get_new_wall(cur_position))
         wall_list = np.array(wall_list)
 
         # Sort the wall list
@@ -112,7 +112,7 @@ class Lattice():
         if type_after_collision_left != type_after_collision_right:
             new_position = left_wall.position
             new_type = np.array([type_after_collision_left, type_after_collision_right])
-            new_wall = self.get_new_collision_wall(new_position, wall_type = new_type)
+            new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
         collided_indices = (self.walls == left_wall)
         collision_indices = np.where(collided_indices)[0]
@@ -144,19 +144,19 @@ class Lattice():
             self.walls = self.walls[~collided_indices]
             return ANNIHILATE
 
-    def get_new_collision_wall(self, new_position, wall_type):
-        return Wall(new_position, wall_type=wall_type)
+    def get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
+        '''Creates a new wall appropriate for the lattice. Necessary for subclassing.'''
+        return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
 class Selection_Lattice(Lattice):
 
     def __init__(self, delta_prob_dict, lattice_size, num_types=3):
-        Lattice.__init__(self, lattice_size, num_types=num_types)
         self.delta_prob_dict = delta_prob_dict
-        # Initialize the walls correctly; make them selection walls!
-        for i in range(self.walls.shape[0]):
-            self.walls[i] = Selection_Wall.get_selection_wall_from_neutral(self.walls[i], self.delta_prob_dict)
+        # If this is not done first, very bad things will happen. This needs to be defined
+        # in order for walls to be created correctly.
+        Lattice.__init__(self, lattice_size, num_types=num_types)
 
-    def get_new_collision_wall(self, new_position, wall_type):
+    def get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
