@@ -8,7 +8,7 @@ RIGHT = 1
 ANNIHILATE = 0
 COALESCE = 1
 
-class Lattice(object):
+class Lattice():
 
     def __init__(self, lattice_size, num_types=3):
         self.lattice_size = lattice_size
@@ -143,7 +143,7 @@ class Lattice(object):
             return ANNIHILATE
 
 
-class Wall(object):
+class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
         self.position = position
         # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
@@ -169,12 +169,12 @@ class Wall(object):
             return LEFT
 
 class Selection_Lattice(Lattice):
-    def _init__(self, delta_prob_dict, lattice_size, num_types=3):
-        super(Selection_Lattice, self).__init__(self, lattice_size, num_types=num_types)
+    def __init__(self, delta_prob_dict, lattice_size, num_types=3):
+        Lattice.__init__(self, lattice_size, num_types=num_types)
         self.delta_prob_dict = delta_prob_dict
 
     def get_walls(self):
-        walls = super(Selection_Lattice, self).get_walls()
+        walls = Lattice.get_walls(self)
         for i in range(walls.shape[0]):
             walls[i] = Selection_Wall.get_selection_wall_from_neutral(walls[i], self.delta_prob_dict)
         return walls
@@ -184,8 +184,8 @@ class Selection_Wall(Wall):
 
     def __init__(self, position, wall_neighbors=None, wall_type = None, delta_prob_dict = None):
         '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
-        super(Selection_Wall, self).__init__(self, position, wall_neighbors, wall_type)
-        self.delta_prob_dict = None
+        Wall.__init__(self, position, wall_neighbors, wall_type)
+        self.delta_prob_dict = delta_prob_dict
 
     def get_jump_direction(self):
         # Get the change in probability of jumping left and right.
@@ -202,7 +202,7 @@ class Selection_Wall(Wall):
         return Selection_Wall(neutral_wall.position, wall_neighbors = neutral_wall.wall_neighbors,
                               wall_type = neutral_wall.wall_type, delta_prob_dict = delta_prob_dict)
 
-class Lattice_Simulation(object):
+class Lattice_Simulation():
 
     def __init__(self, lattice_size=100, num_types=3, record_every = 1,
                  record_lattice=True):
@@ -332,11 +332,10 @@ class Selection_Lattice_Simulation(Lattice_Simulation):
 
     def __init__(self, delta_prob_dict, lattice_size=100, num_types=3, record_every = 1,
                  record_lattice=True):
-        super(Selection_Lattice_Simulation, self).__init__(lattice_size = lattice_size,
+        Lattice_Simulation.__init__(self, lattice_size = lattice_size,
                                                            num_types = num_types,
                                                            record_every = record_every,
                                                            record_lattice = record_lattice)
 
         self.delta_prob_dict = delta_prob_dict
-        self.lattice = Selection_Lattice(self.delta_prob_dict, lattice_size = lattice_size, num_types = num_types)
-        # TODO figure out why I am getting bizarre duplicate argument problems...
+        self.lattice = Selection_Lattice(self.delta_prob_dict, lattice_size, num_types=num_types)
