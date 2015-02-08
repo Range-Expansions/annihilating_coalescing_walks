@@ -59,7 +59,7 @@ cdef class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage. Let's say the biggest.'''
 
     cdef:
-        dict delta_prob_dict
+        public dict delta_prob_dict
 
     def __init__(Selection_Wall self, long position,
                  Selection_Wall[:] wall_neighbors=None, long[:] wall_type = None,
@@ -107,6 +107,9 @@ cdef class Lattice:
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
             wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
+
+        cdef long left_index
+        cdef long right_index
 
         # Indicate what type of wall the wall is
         for i in range(wall_list.shape[0]):
@@ -244,24 +247,45 @@ cdef class Lattice:
 
 cdef class Selection_Lattice(Lattice):
 
+    cdef:
+        public dict delta_prob_dict
+
     def __init__(self, delta_prob_dict, lattice_size, num_types=3):
         self.delta_prob_dict = delta_prob_dict
         # If this is not done first, very bad things will happen. This needs to be defined
         # in order for walls to be created correctly.
         Lattice.__init__(self, lattice_size, num_types=num_types)
 
-    def get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
+    cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
-class Lattice_Simulation():
+cdef class Lattice_Simulation:
 
-    def __init__(self, lattice_size=100, num_types=3, record_every = 1,
-                 record_lattice=True, debug=False):
+    cdef:
+        public long lattice_size
+        public long num_types
+        public double record_every
+        public bool record_lattice
+        public bool debug
+
+        public Lattice lattice
+        public double[:] time_array
+        public long[:, :] lattice_history
+
+        public long[:] annihilation_array
+        public long[:] coalescence_array
+        public long[:] num_walls_array
+
+    def __init__(Lattice_Simulation self, long lattice_size=100, long num_types=3, double record_every = 1,
+                 bool record_lattice=True, bool debug=False, unsigned long int seed = 0):
 
         self.lattice_size = lattice_size
         self.num_types = num_types
         self.record_every = record_every
+        self.record_lattice = record_lattice
+        self.debug=debug
+        self.seed = seed
 
         self.lattice = Lattice(lattice_size, num_types)
 
@@ -271,34 +295,46 @@ class Lattice_Simulation():
         self.annihilation_array = None
         self.num_walls_array = None
 
-        self.record_lattice = record_lattice
-        self.debug=debug
+    def run(self, double max_time):
+        '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
+        # Initialize the random number generator
+        np.random.seed(self.seed)
+        cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
+        gsl_rng_set(r, self.seed)
 
-    def run(self, max_time):
 
-        num_record_steps = max_time / self.record_every + 1
+        cdef long num_record_steps = long(max_time / self.record_every) + 1
 
-        self.time_array = np.zeros(num_record_steps)
+        self.time_array = np.zeros(num_record_steps, dtype=np.double)
 
         if self.record_lattice:
-            self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size))
-            self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
+            self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size), dtype=np.long)
+            if self.record_lattice:
+                self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
 
-        self.coalescence_array = -1*np.ones(num_record_steps)
-        self.annihilation_array = -1*np.ones(num_record_steps)
-        self.num_walls_array = -1*np.ones(num_record_steps)
+        self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.long)
+        self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.long)
+        self.num_walls_array = -1*np.ones(num_record_steps, dtype=np.long)
 
         self.coalescence_array[0] = 0
         self.annihilation_array[0] = 0
         self.num_walls_array[0] = self.lattice.walls.shape[0]
 
-        cur_time = 0
-        time_remainder = 0
-        num_recorded = 1
+        cdef double cur_time = 0
+        cdef double time_remainder = 0
+        cdef int num_recorded = 1
 
-        step_count = 0
-        annihilation_count_per_time = 0
-        coalescence_count_per_time = 0
+        cdef int step_count = 0
+        cdef int annihilation_count_per_time = 0
+        cdef int coalescence_count_per_time = 0
+
+        cdef:
+            unsigned int index
+            Wall current_wall
+            double delta_t
+            unsigned int jump_direction
+            unsigned int collision_type
+            Wall left_neighbor, right_neighbor
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
 
@@ -307,7 +343,7 @@ class Lattice_Simulation():
                 print 'Before jump'
                 print [z.position for z in self.lattice.walls]
 
-            index = np.random.randint(0, self.lattice.walls.shape[0])
+            index = gsl_rng_uniform_int(r, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[index]
             if self.debug:
                 print 'Current wall position:' , current_wall.position
@@ -315,7 +351,7 @@ class Lattice_Simulation():
             delta_t = 1./self.lattice.walls.shape[0]
 
             #### Choose a jump direction ####
-            jump_direction = current_wall.get_jump_direction()
+            jump_direction = current_wall.get_jump_direction(r)
             if jump_direction == RIGHT:
                 current_wall.position += 1
                 # No mod here, as we have to do extra stuff if there is a problem.
@@ -334,7 +370,6 @@ class Lattice_Simulation():
                 print [z.position for z in self.lattice.walls]
 
             #### Deal with collisions ####
-            new_wall = None
             collision_type = None
 
             if jump_direction == LEFT:
@@ -419,6 +454,9 @@ class Lattice_Simulation():
         self.annihilation_array = self.annihilation_array[0:num_recorded]
         self.coalescence_array = self.coalescence_array[0:num_recorded]
         self.num_walls_array = self.num_walls_array[0:num_recorded]
+
+        # DONE! Deallocate as necessary.
+        gsl_rng_free(r)
 
 class Selection_Lattice_Simulation(Lattice_Simulation):
 
