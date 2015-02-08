@@ -130,7 +130,7 @@ class Lattice():
             self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
             return COALESCE
         else: #Annihilate
-
+            print np.where(collided_indices)[0]
             # Redo neighbors before annihilation for simplicity
             wall_before_index = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
             wall_two_after_index = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
@@ -150,6 +150,52 @@ class Selection_Lattice(Lattice):
         # Initialize the walls correctly; make them selection walls!
         for i in range(self.walls.shape[0]):
             self.walls[i] = Selection_Wall.get_selection_wall_from_neutral(self.walls[i], self.delta_prob_dict)
+
+    def collide(self, left_wall, right_wall):
+        '''Collides two walls. Make sure the wall that was on the left
+        is passed first.'''
+
+        new_wall = None
+        type_after_collision_left = left_wall.wall_type[0]
+        type_after_collision_right = right_wall.wall_type[1]
+
+        if type_after_collision_left != type_after_collision_right:
+            new_position = left_wall.position
+            new_type = np.array([type_after_collision_left, type_after_collision_right])
+            # This is the change here
+            new_wall = Selection_Wall(new_position, wall_type = new_type, delta_prob_dict=self.delta_prob_dict)
+
+        collided_indices = (self.walls == left_wall)
+        first_index = np.where(collided_indices)[0][0]
+        if new_wall is not None: # Coalesce
+            # Redo neighbors first
+            self.walls[first_index] = new_wall
+            wall_after = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
+            wall_before = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
+
+            wall_before.wall_neighbors[1] = new_wall
+            new_wall.wall_neighbors = np.array([wall_before, wall_after])
+            wall_after.wall_neighbors[0] = new_wall
+
+            # Delete the undesired wall
+            self.walls = np.delete(self.walls, np.mod(first_index + 1, self.walls.shape[0]))
+            return COALESCE
+        else: #Annihilate
+            if np.where(collided_indices)[0].shape[0] < 2:
+                print 'Somehow, annihilations are occuring at a single wall...wtf'
+                positions = [z.position for z in self.walls]
+                print positions
+
+            # Redo neighbors before annihilation for simplicity
+            wall_before_index = self.walls[np.mod(first_index - 1, self.walls.shape[0])]
+            wall_two_after_index = self.walls[np.mod(first_index + 2, self.walls.shape[0])]
+
+            wall_before_index.wall_neighbors[1] = wall_two_after_index
+            wall_two_after_index.wall_neighbors[0] = wall_before_index
+
+            # Do the actual annihilation
+            self.walls = self.walls[~collided_indices]
+            return ANNIHILATE
 
 class Wall():
     def __init__(self, position, wall_neighbors = None, wall_type = None):
