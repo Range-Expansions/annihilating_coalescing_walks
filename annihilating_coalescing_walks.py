@@ -292,6 +292,10 @@ class Lattice_Simulation():
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
 
+            #### Debug
+            print 'Before jump'
+            print [z.position for z in self.lattice.walls]
+
             index = np.random.randint(0, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[index]
             # Determine time increment before deletion of walls
@@ -311,16 +315,22 @@ class Lattice_Simulation():
                     current_wall.position = self.lattice_size - 1
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
 
+            #### Debug ####
+            print 'After jump'
+            print [z.position for z in self.lattice.walls]
+
             #### Deal with collisions ####
             new_wall = None
             collision_type = None
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
                 if current_wall.position == left_neighbor.position:
+                    print 'Collision!'
                     collision_type = self.lattice.collide(left_neighbor, current_wall)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
                 if current_wall.position == right_neighbor.position:
+                    print 'Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor)
 
             if collision_type is not None:
@@ -328,6 +338,12 @@ class Lattice_Simulation():
                     annihilation_count_per_time += 1
                 else:
                     coalescence_count_per_time += 1
+
+            #### Debug #####
+            print 'After collision'
+            print [z.position for z in self.lattice.walls]
+            print
+            print
 
             #### Record information ####
             cur_time += delta_t
