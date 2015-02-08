@@ -322,15 +322,16 @@ class Lattice_Simulation():
             #### Deal with collisions ####
             new_wall = None
             collision_type = None
+
+            print current_wall.wall_neighbors[LEFT].position, current_wall.position, current_wall.wall_neighbors[RIGHT].position
+
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
-                print current_wall.position, left_neighbor.position
                 if current_wall.position == left_neighbor.position:
                     print 'Collision!'
                     collision_type = self.lattice.collide(left_neighbor, current_wall)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
-                print current_wall.position, right_neighbor.position
                 if current_wall.position == right_neighbor.position:
                     print 'Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor)
