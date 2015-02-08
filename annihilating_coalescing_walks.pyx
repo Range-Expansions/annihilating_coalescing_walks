@@ -55,6 +55,29 @@ cdef class Wall:
         else:
             return LEFT
 
+cdef class Selection_Wall(Wall):
+    '''One must define which wall gets a selective advantage. Let's say the biggest.'''
+
+    cdef:
+        dict delta_prob_dict
+
+    def __init__(Selection_Wall self, long position,
+                 Selection_Wall[:] wall_neighbors=None, long[:] wall_type = None,
+                 dict delta_prob_dict = None):
+        '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
+        Wall.__init__(self, position, wall_neighbors = wall_neighbors, wall_type = wall_type)
+        self.delta_prob_dict = delta_prob_dict
+
+    cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
+        # Get the change in probability of jumping left and right.
+        cdef double right_prob_change = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
+
+        cdef double random_num = gsl_rng_uniform(r)
+        if random_num < 0.5 + right_prob_change:
+            return RIGHT
+        else:
+            return LEFT
+
 cdef class Lattice:
 
     cdef:
@@ -231,29 +254,6 @@ cdef class Selection_Lattice(Lattice):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
-class Selection_Wall(Wall):
-    '''One must define which wall gets a selective advantage. Let's say the biggest.'''
-
-    def __init__(self, position, wall_neighbors=None, wall_type = None, delta_prob_dict = None):
-        '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
-        Wall.__init__(self, position, wall_neighbors, wall_type)
-        self.delta_prob_dict = delta_prob_dict
-
-    def get_jump_direction(self):
-        # Get the change in probability of jumping left and right.
-        right_prob_change = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
-
-        random_num = np.random.rand()
-        if random_num < 0.5 + right_prob_change:
-            return RIGHT
-        else:
-            return LEFT
-
-    @staticmethod
-    def get_selection_wall_from_neutral(neutral_wall, delta_prob_dict):
-        return Selection_Wall(neutral_wall.position, wall_neighbors = neutral_wall.wall_neighbors,
-                              wall_type = neutral_wall.wall_type, delta_prob_dict = delta_prob_dict)
-
 class Lattice_Simulation():
 
     def __init__(self, lattice_size=100, num_types=3, record_every = 1,
@@ -395,8 +395,8 @@ class Lattice_Simulation():
                     left_neighbor_position = current_wall.wall_neighbors[0].position
                     right_neighbor_position = current_wall.wall_neighbors[1].position
 
-                    actual_left_position = self.lattice.walls[np.mod(i-1, self.lattice.walls.shape[0])].position
-                    actual_right_position = self.lattice.walls[np.mod(i+1, self.lattice.walls.shape[0])].position
+                    actual_left_position = self.lattice.walls[(i-1) % self.lattice.walls.shape[0]].position
+                    actual_right_position = self.lattice.walls[(i+1) % self.lattice.walls.shape[0]].position
 
                     if (left_neighbor_position != actual_left_position) or (right_neighbor_position != actual_right_position):
                         print 'Neighbors are messed up. Neighbor positions and actual positions do not line up.'
