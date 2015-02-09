@@ -1,4 +1,4 @@
-#cython: profile=False
+#cython: profile=True
 #cython: boundscheck=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
@@ -187,7 +187,7 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_lattice
 
-    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall, long left_wall_index) except *:
+    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall, long left_wall_index):
         '''Collides two walls. Make sure the wall that was on the left
         is passed first. The left wall current_wall_index gives the current current_wall_index of the left wall.'''
 
