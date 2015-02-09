@@ -47,13 +47,13 @@ cdef class Wall:
     #     elif operation == 5: #greater than or equal to
     #         return self.position >= other.position
 
-    #def __cmp__(Wall self, Wall other):
-    #    if self.position < other.position:
-    #        return -1
-    #    elif self.position == other.position:
-    #        return 0
-    #    else:
-    #        return 1
+    def __cmp__(Wall self, Wall other):
+        if self.position < other.position:
+            return -1
+        elif self.position == other.position:
+            return 0
+        else:
+            return 1
 
     cdef unsigned int get_jump_direction(Wall self, gsl_rng *r):
         # Feed in gsl_rng *r as the random generator
@@ -193,9 +193,9 @@ cdef class Lattice:
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_lattice
 
-    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall):
+    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall, long left_wall_index):
         '''Collides two walls. Make sure the wall that was on the left
-        is passed first.'''
+        is passed first. The left wall index gives the current index of the left wall.'''
 
         cdef Wall new_wall = None
         cdef long type_after_collision_left = left_wall.wall_type[0]
@@ -209,37 +209,31 @@ cdef class Lattice:
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
-        cdef long[:] collision_indices = np.where(self.walls == left_wall)
-        if collision_indices.shape[0] < 2:
-            print 'Something has gone very wrong, a wall appears to be colliding with itself.'
-            print 'The collision indices are:' , np.asarray(collision_indices)
-        cdef long first_index = collision_indices[0]
-
         cdef Wall wall_after, wall_before, wall_before_index, wall_two_after_index
         cdef long before_index, two_after_index
         cdef long[:] to_delete
 
-        print 'Checking to see if it was annihilation or coalescence...'
+        if self.walls[(left_wall_index + 1) % self.walls.shape[0]].position != self.walls[left_wall_index].position:
+            print 'Something is screwed up...walls are colliding with themselves?'
+
         if new_wall is not None: # Coalesce
-            print 'Coalesce!'
             # Redo neighbors first
-            self.walls[first_index] = new_wall
-            wall_after = self.walls[(first_index + 2) % self.walls.shape[0]]
-            wall_before = self.walls[(first_index - 1) % self.walls.shape[0]]
+            self.walls[left_wall_index] = new_wall
+            wall_after = self.walls[(left_wall_index + 2) % self.walls.shape[0]]
+            wall_before = self.walls[(left_wall_index - 1) % self.walls.shape[0]]
 
             wall_before.wall_neighbors[1] = new_wall
             new_wall.wall_neighbors = np.array([wall_before, wall_after])
             wall_after.wall_neighbors[0] = new_wall
 
             # Delete the undesired wall
-            self.walls = np.delete(self.walls, (first_index + 1) % self.walls.shape[0])
+            self.walls = np.delete(self.walls, (left_wall_index + 1) % self.walls.shape[0])
             return COALESCE
         else: #Annihilate
-            print 'Annihilate!'
             # Redo neighbors before annihilation for simplicity
 
-            before_index = (first_index -1) % self.walls.shape[0]
-            two_after_index = (first_index +2) % self.walls.shape[0]
+            before_index = (left_wall_index - 1) % self.walls.shape[0]
+            two_after_index = (left_wall_index +2) % self.walls.shape[0]
 
             wall_before_index = self.walls[before_index % self.walls.shape[0]]
             wall_two_after_index = self.walls[two_after_index % self.walls.shape[0]]
@@ -248,7 +242,7 @@ cdef class Lattice:
             wall_two_after_index.wall_neighbors[0] = wall_before_index
 
             # Do the actual annihilation
-            to_delete = np.array([before_index, two_after_index])
+            to_delete = np.array([left_wall_index, left_wall_index + 1])
             self.walls = np.delete(self.walls, to_delete)
             return ANNIHILATE
 
@@ -348,6 +342,7 @@ cdef class Lattice_Simulation:
             unsigned int jump_direction
             unsigned int collision_type
             Wall left_neighbor, right_neighbor
+            cdef long left_wall_index
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
 
@@ -388,14 +383,15 @@ cdef class Lattice_Simulation:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
                 if current_wall.position == left_neighbor.position:
                     if self.debug:
-                        print 'Collision!'
-                    collision_type = self.lattice.collide(left_neighbor, current_wall)
+                        print 'Jump  Left Collision!'
+                    left_wall_index = (index - 1)%self.lattice.walls.shape[0]
+                    collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
                 if current_wall.position == right_neighbor.position:
                     if self.debug:
-                        print 'Collision!'
-                    collision_type = self.lattice.collide(current_wall, right_neighbor)
+                        print 'Jump Right Collision!'
+                    collision_type = self.lattice.collide(current_wall, right_neighbor, index)
 
             if collision_type is not None:
                 if collision_type == ANNIHILATE:
