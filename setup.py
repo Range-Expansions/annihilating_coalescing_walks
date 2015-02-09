@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
 import cython_gsl
@@ -12,8 +12,8 @@ extensions = [
 ]
 
 setup(
-    name='annihilating_coalescing_walks',
-    version='',
+    name='annihilating-coalescing-walks',
+    version='0.1',
     packages=[''],
     url='',
     license='',
