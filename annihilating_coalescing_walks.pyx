@@ -216,11 +216,6 @@ cdef class Lattice:
 
             before_index = (left_wall_index - 1) % self.walls.shape[0]
             after_index = (left_wall_index + 2) % self.walls.shape[0]
-            print 'wall_after index:' , after_index
-            print 'wall before index:' , before_index
-            print '1)', left_wall_index - 1
-            print '2)', self.walls.shape[0]
-            print '3)', (left_wall_index - 1) % self.walls.shape[0]
 
             wall_after = self.walls[after_index]
             wall_before = self.walls[before_index]
@@ -240,11 +235,6 @@ cdef class Lattice:
 
             before_index = (left_wall_index - 1) % self.walls.shape[0]
             after_index = (left_wall_index +2) % self.walls.shape[0]
-            print 'wall_after index:' , after_index
-            print 'wall before index:' , before_index
-            print '1)', left_wall_index - 1
-            print '2)', self.walls.shape[0]
-            print '3)', (left_wall_index - 1) % self.walls.shape[0]
 
             wall_before = self.walls[before_index % self.walls.shape[0]]
             wall_after = self.walls[after_index % self.walls.shape[0]]
