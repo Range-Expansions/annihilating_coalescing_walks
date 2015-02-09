@@ -33,20 +33,6 @@ cdef class Wall:
         # The wall type indicates the type of kink
         self.wall_type = wall_type
 
-    # def __richcmp__(Wall self, Wall other, int operation):
-    #     if operation == 0: # Less than
-    #         return self.position < other.position
-    #     elif operation == 1: # less then or equal to
-    #         return self.position <= other.position
-    #     elif operation == 2: # equal to
-    #         return self.position == other.position
-    #     elif operation == 3: # not equal to
-    #         return self.position != other.position
-    #     elif operation == 4: # greater than
-    #         return self.position > other.position
-    #     elif operation == 5: #greater than or equal to
-    #         return self.position >= other.position
-
     def __cmp__(Wall self, Wall other):
         if self.position < other.position:
             return -1
@@ -92,11 +78,13 @@ cdef class Lattice:
         public long lattice_size
         public long[:] lattice
         public Wall[:] walls
+        bool debug
 
-    def __init__(Lattice self, long lattice_size, long num_types=3):
+    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False):
         self.lattice_size = lattice_size
         self.lattice = np.random.randint(0, num_types, lattice_size)
         self.walls = self.get_walls()
+        self.debug = debug
 
     cdef Wall[:] get_walls(Lattice self):
         right_shift = np.roll(self.lattice, 1)
@@ -217,6 +205,8 @@ cdef class Lattice:
             print 'Something is screwed up...walls are colliding with themselves?'
 
         if new_wall is not None: # Coalesce
+            if self.debug:
+                print 'Coalesce!'
             # Redo neighbors first
             self.walls[left_wall_index] = new_wall
             wall_after = self.walls[(left_wall_index + 2) % self.walls.shape[0]]
@@ -230,6 +220,8 @@ cdef class Lattice:
             self.walls = np.delete(self.walls, (left_wall_index + 1) % self.walls.shape[0])
             return COALESCE
         else: #Annihilate
+            if self.debug:
+                print 'Annihilate!'
             # Redo neighbors before annihilation for simplicity
 
             before_index = (left_wall_index - 1) % self.walls.shape[0]
@@ -251,15 +243,14 @@ cdef class Lattice:
         return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
 cdef class Selection_Lattice(Lattice):
-
     cdef:
         public dict delta_prob_dict
 
-    def __init__(self, delta_prob_dict, lattice_size, num_types=3):
+    def __init__(self, delta_prob_dict, lattice_size, num_types=3, bool debug = False):
         self.delta_prob_dict = delta_prob_dict
         # If this is not done first, very bad things will happen. This needs to be defined
         # in order for walls to be created correctly.
-        Lattice.__init__(self, lattice_size, num_types=num_types)
+        Lattice.__init__(self, lattice_size, num_types=num_types, debug=debug)
 
     cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
@@ -294,7 +285,7 @@ cdef class Lattice_Simulation:
         self.debug=debug
         self.seed = seed
 
-        self.lattice = Lattice(lattice_size, num_types)
+        self.lattice = Lattice(lattice_size, num_types, debug=self.debug)
 
         self.time_array = None
         self.lattice_history = None
@@ -477,4 +468,4 @@ cdef class Selection_Lattice_Simulation(Lattice_Simulation):
                                     num_types = num_types, record_every = record_every,
                                     record_lattice = record_lattice, debug=debug)
         self.delta_prob_dict = delta_prob_dict
-        self.lattice = Selection_Lattice(delta_prob_dict, lattice_size, num_types=num_types)
+        self.lattice = Selection_Lattice(delta_prob_dict, lattice_size, num_types=num_types, debug=self.debug)
