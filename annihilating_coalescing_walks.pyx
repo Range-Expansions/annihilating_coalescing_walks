@@ -1,6 +1,6 @@
-#cython: profile=True
-#cython: boundscheck=True
-#cython: initializedcheck=True
+#cython: profile=False
+#cython: boundscheck=False
+#cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
 #cython: cdivision=True
@@ -19,7 +19,7 @@ cdef unsigned int RIGHT = 1
 cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 
-cpdef long c_pos_mod(long num1, long num2) nogil:
+cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
         return num1 + num2
     else:
@@ -390,7 +390,6 @@ cdef class Lattice_Simulation:
                     if self.debug:
                         print 'Jump Left Collision!'
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
-                    print 'left wall current_wall_index is:', c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
