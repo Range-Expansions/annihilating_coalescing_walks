@@ -18,6 +18,7 @@ cdef unsigned int RIGHT = 1
 
 cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
+cdef unsigned int NO_COLLISIONS = 2
 
 cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
@@ -355,7 +356,7 @@ cdef class Lattice_Simulation:
             Wall current_wall
             double delta_t
             unsigned int jump_direction
-            unsigned int collision_type
+            unsigned int collision_type = NO_COLLISIONS
             Wall left_neighbor, right_neighbor
             cdef long left_wall_index
 
@@ -410,7 +411,7 @@ cdef class Lattice_Simulation:
                         print 'Jump Right Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
 
-            if collision_type is not None:
+            if collision_type is not NO_COLLISIONS:
                 if collision_type == ANNIHILATE:
                     annihilation_count_per_time += 1
                 else:
@@ -435,8 +436,8 @@ cdef class Lattice_Simulation:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
@@ -444,18 +445,19 @@ cdef class Lattice_Simulation:
                     self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
 
                     # Increment the number recorded
-                    time_remainder -= self.record_every
+                    time_remainder = 0
                     num_recorded += 1
 
             else: # Record at given times
                 if cur_time >= self.record_time_array[num_recorded]:
+
                     # Create lattice
                     if self.record_lattice:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
@@ -467,7 +469,9 @@ cdef class Lattice_Simulation:
 
                     time_remainder = 0 # time-remainder acts as the delta t in this case.
 
+            # Refresh for the next time interval
             step_count += 1
+            collision_type = NO_COLLISIONS
 
             #### Debug if necessary ####
             if self.debug: #This takes a lot of time but helps to pinpoint problems.
