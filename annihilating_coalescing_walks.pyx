@@ -436,8 +436,8 @@ cdef class Lattice_Simulation:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
@@ -456,8 +456,8 @@ cdef class Lattice_Simulation:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
