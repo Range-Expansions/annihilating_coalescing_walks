@@ -20,10 +20,12 @@ def get_simulation_df(sim, max_time_power=8):
 def average_simulations(sim, num_simulations = 100, **kwargs):
     '''Creates many simulations based off of sim and returns the combined dataframes.'''
 
-
     df_list = []
     for i in range(num_simulations):
+        print sim.seed
         new_df = get_simulation_df(sim, **kwargs)
         new_df['sim_num'] = i
         df_list.append(new_df)
+        new_seed = np.random.randint(0, 2**32 - 1)
+        sim.reset(new_seed)
     return df_list
