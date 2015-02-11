@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 import annihilating_coalescing_walks as acw
 
+def get_log_record_times(max_power, num_to_record = 300):
+    first_steps = np.arange(0, 10)
+    next_steps = np.logspace(1, max_power, num_to_record)
+    return np.concatenate((first_steps, next_steps))
+
 def get_simulation_df(sim, max_time_power=8):
 
     sim.run(10**max_time_power)

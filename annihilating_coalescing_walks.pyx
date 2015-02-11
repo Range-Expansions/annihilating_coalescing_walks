@@ -526,13 +526,10 @@ cdef class Selection_Lattice_Simulation(Lattice_Simulation):
     cdef:
         public dict delta_prob_dict
 
-    def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, long lattice_size=100, long num_types=3,
-                 double record_every = 1, bool record_lattice=True, bool debug=False):
+    def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
 
         self.delta_prob_dict = delta_prob_dict
-        Lattice_Simulation.__init__(self, lattice_size = lattice_size,
-                                    num_types = num_types, record_every = record_every,
-                                    record_lattice = record_lattice, debug=debug)
+        Lattice_Simulation.__init__(self, **kwargs)
 
     cdef Lattice initialize_lattice(self):
         '''Necessary for subclassing.'''
