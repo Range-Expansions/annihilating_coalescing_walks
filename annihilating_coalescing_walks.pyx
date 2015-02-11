@@ -1,6 +1,6 @@
 #cython: profile=False
-#cython: boundscheck=False
-#cython: initializedcheck=False
+#cython: boundscheck=True
+#cython: initializedcheck=True
 #cython: nonecheck=False
 #cython: wraparound=False
 #cython: cdivision=True
@@ -280,6 +280,7 @@ cdef class Lattice_Simulation:
         public Lattice lattice
         public double[:] time_array
         public long[:, :] lattice_history
+        public double[:] record_time_array
 
         public long[:] annihilation_array
         public long[:] coalescence_array
@@ -288,7 +289,8 @@ cdef class Lattice_Simulation:
         public unsigned long int seed
 
     def __init__(Lattice_Simulation self, long lattice_size=100, long num_types=3, double record_every = 1,
-                 bool record_lattice=True, bool debug=False, unsigned long int seed = 0):
+                 bool record_lattice=True, bool debug=False, unsigned long int seed = 0,
+                 record_time_array = None):
 
         self.lattice_size = lattice_size
         self.num_types = num_types
@@ -296,14 +298,20 @@ cdef class Lattice_Simulation:
         self.record_lattice = record_lattice
         self.debug=debug
         self.seed = seed
+        self.record_time_array = record_time_array
 
-        self.lattice = Lattice(lattice_size, num_types, debug=self.debug)
+        self.lattice = self.initialize_lattice()
 
-        self.time_array = None
+        self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
         self.coalescence_array = None
         self.annihilation_array = None
         self.num_walls_array = None
+
+    cdef Lattice initialize_lattice(self):
+        '''Necessary for subclassing.'''
+        return Lattice(self.lattice_size, self.num_types, debug=self.debug)
+
 
     def run(Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
@@ -313,9 +321,13 @@ cdef class Lattice_Simulation:
         gsl_rng_set(r, self.seed)
 
 
-        cdef long num_record_steps = long(max_time / self.record_every) + 1
-
-        self.time_array = np.zeros(num_record_steps, dtype=np.double)
+        cdef long num_record_steps
+        if self.record_time_array is None:  # If the user doesn't send in a time array, record at record_every
+             num_record_steps = long(max_time / self.record_every) + 1
+             self.time_array = np.zeros(num_record_steps, dtype=np.double)
+        else: # Record at specified times
+            num_record_steps = self.record_time_array.shape[0]
+            self.time_array = self.record_time_array.copy()
 
         if self.record_lattice:
             self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size), dtype=np.long)
@@ -413,30 +425,50 @@ cdef class Lattice_Simulation:
             cur_time += delta_t
             time_remainder += delta_t
 
-            if time_remainder >= self.record_every: # Record this step
-                # Deal with keeping track of time
-                self.time_array[num_recorded] = cur_time
-                time_remainder -= self.record_every
+            if self.record_time_array is None: # Record at record every
+                if time_remainder >= self.record_every: # Record this step
+                    # Deal with keeping track of time
+                    self.time_array[num_recorded] = cur_time
+                    time_remainder -= self.record_every
 
-                # Create lattice
-                if self.record_lattice:
-                    self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+                    # Create lattice
+                    if self.record_lattice:
+                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
-                # Count annihilations & coalescences
-                self.annihilation_array[num_recorded] = annihilation_count_per_time
-                self.coalescence_array[num_recorded] = coalescence_count_per_time
-                annihilation_count_per_time = 0
-                coalescence_count_per_time = 0
+                    # Count annihilations & coalescences
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    annihilation_count_per_time = 0
+                    coalescence_count_per_time = 0
 
-                # Count the number of walls
-                self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
+                    # Count the number of walls
+                    self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
 
-                # Increment the number recorded
+                    # Increment the number recorded
 
-                num_recorded += 1
+                    num_recorded += 1
+
+            else: # Record at given times
+                if cur_time >= self.record_time_array[num_recorded]:
+                    # Create lattice
+                    if self.record_lattice:
+                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+
+                    # Count annihilations & coalescences
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    annihilation_count_per_time = 0
+                    coalescence_count_per_time = 0
+
+                    # Count the number of walls
+                    self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
+
+                    # Increment the number recorded
+                    num_recorded += 1
 
             step_count += 1
 
+            #### Debug if necessary ####
             if self.debug: #This takes a lot of time but helps to pinpoint problems.
                 for i in range(self.lattice.walls.shape[0]):
                     current_wall = self.lattice.walls[i]
@@ -453,6 +485,8 @@ cdef class Lattice_Simulation:
                         print 'Its neigbors actually are', actual_left_position, actual_right_position
                 print
                 print
+
+        #### Simulation is done; finish up. ####
 
         if num_recorded == num_record_steps:
             print 'Used up available amount of time.'
@@ -478,8 +512,13 @@ cdef class Selection_Lattice_Simulation(Lattice_Simulation):
 
     def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, long lattice_size=100, long num_types=3,
                  double record_every = 1, bool record_lattice=True, bool debug=False):
+
+        self.delta_prob_dict = delta_prob_dict
         Lattice_Simulation.__init__(self, lattice_size = lattice_size,
                                     num_types = num_types, record_every = record_every,
                                     record_lattice = record_lattice, debug=debug)
-        self.delta_prob_dict = delta_prob_dict
-        self.lattice = Selection_Lattice(delta_prob_dict, lattice_size, num_types=num_types, debug=self.debug)
+
+    cdef Lattice initialize_lattice(self):
+        '''Necessary for subclassing.'''
+        return Selection_Lattice(self.delta_prob_dict, self.lattice_size,
+                                 num_types=self.num_types, debug=self.debug)
