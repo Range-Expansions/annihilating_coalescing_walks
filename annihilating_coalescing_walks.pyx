@@ -282,8 +282,8 @@ cdef class Lattice_Simulation:
         public long[:, :] lattice_history
         public double[:] record_time_array
 
-        public long[:] annihilation_array
-        public long[:] coalescence_array
+        public double[:] annihilation_array
+        public double[:] coalescence_array
         public long[:] num_walls_array
 
         public unsigned long int seed
@@ -334,8 +334,8 @@ cdef class Lattice_Simulation:
             if self.record_lattice:
                 self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
 
-        self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.long)
-        self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.long)
+        self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
+        self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.num_walls_array = -1*np.ones(num_record_steps, dtype=np.long)
 
         self.coalescence_array[0] = 0
@@ -429,15 +429,14 @@ cdef class Lattice_Simulation:
                 if time_remainder >= self.record_every: # Record this step
                     # Deal with keeping track of time
                     self.time_array[num_recorded] = cur_time
-                    time_remainder -= self.record_every
 
                     # Create lattice
                     if self.record_lattice:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
@@ -445,7 +444,7 @@ cdef class Lattice_Simulation:
                     self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
 
                     # Increment the number recorded
-
+                    time_remainder -= self.record_every
                     num_recorded += 1
 
             else: # Record at given times
@@ -455,8 +454,8 @@ cdef class Lattice_Simulation:
                         self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
 
                     # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time
+                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
+                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
                     annihilation_count_per_time = 0
                     coalescence_count_per_time = 0
 
@@ -465,6 +464,8 @@ cdef class Lattice_Simulation:
 
                     # Increment the number recorded
                     num_recorded += 1
+
+                    time_remainder = 0 # time-remainder acts as the delta t in this case.
 
             step_count += 1
 
