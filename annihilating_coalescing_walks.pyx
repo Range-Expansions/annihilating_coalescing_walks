@@ -298,9 +298,11 @@ cdef class Lattice_Simulation:
         self.record_every = record_every
         self.record_lattice = record_lattice
         self.debug=debug
-        self.seed = seed
         self.record_time_array = record_time_array
 
+        # Make sure the python seed is set before initializing the lattice...
+        self.seed = seed
+        np.random.seed(self.seed)
         self.lattice = self.initialize_lattice()
 
         self.time_array = None # Assumes the first time is always zero!
@@ -309,15 +311,24 @@ cdef class Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-    cdef Lattice initialize_lattice(self):
+    cdef Lattice initialize_lattice(Lattice_Simulation self):
         '''Necessary for subclassing.'''
         return Lattice(self.lattice_size, self.num_types, debug=self.debug)
+
+    def reset(Lattice_Simulation self, seed):
+        self.seed = seed
+        np.random.seed(self.seed)
+        self.lattice = self.initialize_lattice()
+        self.time_array = None
+        self.lattice_history = None
+        self.coalescence_array = None
+        self.annihilation_array = None
+        self.num_walls_array = None
 
 
     def run(Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
-        np.random.seed(self.seed)
         cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
         gsl_rng_set(r, self.seed)
 
