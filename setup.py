@@ -13,7 +13,7 @@ extensions = [
 
 setup(
     name='annihilating-coalescing-walks',
-    version='0.1',
+    version='0.2',
     packages=[''],
     url='',
     license='',
@@ -22,5 +22,5 @@ setup(
     description='',
     include_dirs = [cython_gsl.get_include(), np.get_include()],
     ext_modules = cythonize(extensions, annotate=True),
-    py_modules = ['utility']
+    py_modules = ['annihilating_coalescing_walks_utility']
 )
