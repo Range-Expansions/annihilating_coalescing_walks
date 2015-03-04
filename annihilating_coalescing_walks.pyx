@@ -286,6 +286,7 @@ cdef class Lattice_Simulation:
         public bool record_lattice
         public bool debug
         public bool verbose
+        public bool record_coal_annih_type
 
         public Lattice lattice
         public double[:] time_array
@@ -299,13 +300,15 @@ cdef class Lattice_Simulation:
         public unsigned long int seed
 
     def __init__(Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
-                 unsigned long int seed = 0, record_time_array = None, bool verbose=True, **kwargs):
+                 unsigned long int seed = 0, record_time_array = None, bool verbose=True,
+                 record_coal_annih_type = False, **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
         self.debug=debug
         self.record_time_array = record_time_array
         self.verbose = verbose
+        self.record_coal_annih_type = record_coal_annih_type
 
         # Make sure the python seed is set before initializing the lattice...
         self.seed = seed
