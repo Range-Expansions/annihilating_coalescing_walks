@@ -285,6 +285,7 @@ cdef class Lattice_Simulation:
         public double record_every
         public bool record_lattice
         public bool debug
+        public bool verbose
 
         public Lattice lattice
         public double[:] time_array
@@ -298,12 +299,13 @@ cdef class Lattice_Simulation:
         public unsigned long int seed
 
     def __init__(Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
-                 unsigned long int seed = 0, record_time_array = None, **kwargs):
+                 unsigned long int seed = 0, record_time_array = None, bool verbose=True, **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
         self.debug=debug
         self.record_time_array = record_time_array
+        self.verbose = verbose
 
         # Make sure the python seed is set before initializing the lattice...
         self.seed = seed
@@ -509,12 +511,14 @@ cdef class Lattice_Simulation:
 
         #### Simulation is done; finish up. ####
 
-        if num_recorded == num_record_steps:
-            print 'Used up available amount of time.'
-        elif self.lattice.walls.shape[0] < 2:
-            print 'There are less than two walls remaining.'
+        if self.verbose:
+            if num_recorded == num_record_steps:
+                print 'Used up available amount of time.'
+            elif self.lattice.walls.shape[0] < 2:
+                print 'There are less than two walls remaining.'
 
-        print self.lattice.walls.shape[0] , 'walls remaining, done!'
+            print self.lattice.walls.shape[0] , 'walls remaining, done!'
+
         # Cut the output appropriately
         self.time_array = self.time_array[0:num_recorded]
         if self.record_lattice:
