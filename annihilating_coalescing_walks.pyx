@@ -323,7 +323,8 @@ cdef class Lattice_Simulation:
     def reset(Lattice_Simulation self, seed):
         self.seed = seed
         np.random.seed(self.seed)
-        self.lattice = self.lattice.reset()
+        self.lattice.reset()
+
         self.time_array = None
         self.lattice_history = None
         self.coalescence_array = None
