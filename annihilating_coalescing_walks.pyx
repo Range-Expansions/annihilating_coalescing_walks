@@ -83,6 +83,7 @@ cdef class Lattice:
 
     cdef:
         public long lattice_size
+        public long[:] lattice_ic
         public long[:] lattice
         public Wall[:] walls
         bool debug
@@ -90,11 +91,17 @@ cdef class Lattice:
     def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None):
         self.lattice_size = lattice_size
         if lattice is None:
-            self.lattice = np.random.randint(0, num_types, lattice_size)
+            self.lattice_ic = np.random.randint(0, num_types, lattice_size)
+            self.lattice = self.lattice_ic.copy()
         else:
-            self.lattice = lattice
+            self.lattice_ic = lattice
+            self.lattice = self.lattice_ic.copy()
         self.walls = self.get_walls()
         self.debug = debug
+
+    cdef reset(self):
+        self.lattice = self.lattice_ic.copy()
+        self.walls = self.get_walls()
 
     cdef Wall[:] get_walls(Lattice self):
         right_shift = np.roll(self.lattice, 1)
@@ -262,11 +269,11 @@ cdef class Selection_Lattice(Lattice):
     cdef:
         public dict delta_prob_dict
 
-    def __init__(self, delta_prob_dict, lattice_size, num_types=3, bool debug = False):
+    def __init__(self, delta_prob_dict, **kwargs):
         self.delta_prob_dict = delta_prob_dict
         # If this is not done first, very bad things will happen. This needs to be defined
         # in order for walls to be created correctly.
-        Lattice.__init__(self, lattice_size, num_types=num_types, debug=debug)
+        Lattice.__init__(self, **kwargs)
 
     cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
@@ -275,8 +282,6 @@ cdef class Selection_Lattice(Lattice):
 cdef class Lattice_Simulation:
 
     cdef:
-        public long lattice_size
-        public long num_types
         public double record_every
         public bool record_lattice
         public bool debug
@@ -292,12 +297,9 @@ cdef class Lattice_Simulation:
 
         public unsigned long int seed
 
-    def __init__(Lattice_Simulation self, long lattice_size=100, long num_types=3, double record_every = 1,
-                 bool record_lattice=True, bool debug=False, unsigned long int seed = 0,
-                 record_time_array = None):
-
-        self.lattice_size = lattice_size
-        self.num_types = num_types
+    def __init__(Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
+                 unsigned long int seed = 0, record_time_array = None, **kwargs):
+        '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
         self.debug=debug
@@ -306,7 +308,7 @@ cdef class Lattice_Simulation:
         # Make sure the python seed is set before initializing the lattice...
         self.seed = seed
         np.random.seed(self.seed)
-        self.lattice = self.initialize_lattice()
+        self.lattice = self.initialize_lattice(**kwargs)
 
         self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
@@ -314,14 +316,14 @@ cdef class Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-    cdef Lattice initialize_lattice(Lattice_Simulation self):
+    def initialize_lattice(Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
-        return Lattice(self.lattice_size, self.num_types, debug=self.debug)
+        return Lattice(debug=self.debug, **kwargs)
 
     def reset(Lattice_Simulation self, seed):
         self.seed = seed
         np.random.seed(self.seed)
-        self.lattice = self.initialize_lattice()
+        self.lattice = self.lattice.reset()
         self.time_array = None
         self.lattice_history = None
         self.coalescence_array = None
@@ -335,7 +337,6 @@ cdef class Lattice_Simulation:
         cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
         gsl_rng_set(r, self.seed)
 
-
         cdef long num_record_steps
         if self.record_time_array is None:  # If the user doesn't send in a time array, record at record_every
              num_record_steps = long(max_time / self.record_every) + 1
@@ -345,7 +346,7 @@ cdef class Lattice_Simulation:
             self.time_array = self.record_time_array.copy()
 
         if self.record_lattice:
-            self.lattice_history = -1*np.ones((num_record_steps, self.lattice_size), dtype=np.long)
+            self.lattice_history = -1*np.ones((num_record_steps, self.lattice.lattice_size), dtype=np.long)
             if self.record_lattice:
                 self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
 
@@ -393,14 +394,14 @@ cdef class Lattice_Simulation:
             if jump_direction == RIGHT:
                 current_wall.position += 1
                 # No mod here, as we have to do extra stuff if there is a problem.
-                if current_wall.position == self.lattice_size:
+                if current_wall.position == self.lattice.lattice_size:
                     current_wall.position = 0
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
                     current_wall_index = 0
             else:
                 current_wall.position -= 1
                 if current_wall.position < 0:
-                    current_wall.position = self.lattice_size - 1
+                    current_wall.position = self.lattice.lattice_size - 1
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
                     current_wall_index = self.lattice.walls.shape[0] - 1
 
@@ -534,7 +535,6 @@ cdef class Selection_Lattice_Simulation(Lattice_Simulation):
         self.delta_prob_dict = delta_prob_dict
         Lattice_Simulation.__init__(self, **kwargs)
 
-    cdef Lattice initialize_lattice(self):
+    def initialize_lattice(Selection_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
-        return Selection_Lattice(self.delta_prob_dict, self.lattice_size,
-                                 num_types=self.num_types, debug=self.debug)
+        return Selection_Lattice(self.delta_prob_dict, debug=self.debug, **kwargs)
