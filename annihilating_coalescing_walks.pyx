@@ -87,9 +87,12 @@ cdef class Lattice:
         public Wall[:] walls
         bool debug
 
-    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False):
+    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None):
         self.lattice_size = lattice_size
-        self.lattice = np.random.randint(0, num_types, lattice_size)
+        if lattice is None:
+            self.lattice = np.random.randint(0, num_types, lattice_size)
+        else:
+            self.lattice = lattice
         self.walls = self.get_walls()
         self.debug = debug
 
