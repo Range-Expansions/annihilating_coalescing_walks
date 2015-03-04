@@ -25,7 +25,6 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
 
     df_list = []
     for i in range(num_simulations):
-        print sim.seed
         new_df = get_simulation_df(sim, **kwargs)
         new_df['sim_num'] = i
         df_list.append(new_df)
