@@ -140,26 +140,27 @@ cdef class Lattice:
 
         return wall_list
 
-    cpdef long[:] get_lattice_from_walls(Lattice self): #TODO: NO longer works or makes sense in this context
+    cpdef long[:] get_lattice_from_walls(Lattice self, double[:] output_bins_space):
         '''Returns the lattice array'''
 
-        cdef long[:] output_lattice = -1*np.ones(self.lattice_size, dtype=np.long)
+        cdef long[:] output_lattice = -1*np.ones(output_bins_space.shape[0], dtype=np.long)
+
         cdef long num_walls = self.walls.shape[0]
         # Loop through the walls in terms of position
 
-        cdef Wall cur_wall
         cdef int i
+        cdef Wall cur_wall
 
         if num_walls > 1:
             cur_wall = self.walls[0]
-            for i in range(self.lattice_size):
-                if cur_wall.position == i:
-                    cur_wall = cur_wall.wall_neighbors[1]
-                output_lattice[i] = cur_wall.wall_type[0]
+            for i in range(output_bins_space.shape[0]):
+                if cur_wall.position <= output_bins_space[i]:
+                    cur_wall = cur_wall.wall_neighbors[RIGHT]
+                output_lattice[i] = cur_wall.wall_type[LEFT]
         elif num_walls == 1:
             cur_wall = self.walls[0]
-            for i in range(self.lattice_size):
-                if i < cur_wall.position:
+            for i in range(output_bins_space.shape[0]):
+                if output_bins_space[i] < cur_wall.position:
                     output_lattice[i] = cur_wall.wall_type[0]
                 else:
                     output_lattice[i] = cur_wall.wall_type[1]
@@ -175,7 +176,7 @@ cdef class Lattice:
         cdef long type_after_collision_left = left_wall.wall_type[0]
         cdef long type_after_collision_right = right_wall.wall_type[1]
 
-        cdef long new_position
+        cdef double new_position
         cdef long[:] new_type
 
         if type_after_collision_left != type_after_collision_right:
@@ -186,9 +187,6 @@ cdef class Lattice:
         cdef Wall wall_after, wall_before
         cdef long before_index, after_index
         cdef long[:] to_delete
-
-        if self.walls[c_pos_mod(left_wall_index + 1, self.walls.shape[0])].position != self.walls[left_wall_index].position:
-            print 'Something is screwed up...walls are colliding with themselves?'
 
         if new_wall is not None: # Coalesce
             if self.debug:
@@ -259,7 +257,7 @@ cdef class Inflation_Lattice_Simulation:
 
         public Lattice lattice
         public double[:] time_array
-        public double[:, :] lattice_history
+        public long[:, :] lattice_history
         public double[:] record_time_array
 
         public double[:] annihilation_array
@@ -270,10 +268,13 @@ cdef class Inflation_Lattice_Simulation:
 
         public double radius
         public double velocity
+        public double lattice_spacing_output
+        public double[:] output_bins_space
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01,  **kwargs):
+                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01, lattice_spacing_output=0.5,
+                 **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
@@ -295,6 +296,9 @@ cdef class Inflation_Lattice_Simulation:
 
         self.radius = radius
         self.velocity = velocity
+
+        self.lattice_spacing_output = lattice_spacing_output
+        self.output_bins_space = None
 
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
@@ -327,10 +331,11 @@ cdef class Inflation_Lattice_Simulation:
             num_record_steps = self.record_time_array.shape[0]
             self.time_array = self.record_time_array.copy()
 
+        self.output_bins_space = np.arange(0, self.lattice.lattice_size + self.lattice_spacing_output, self.lattice_spacing_output)
         if self.record_lattice:
-            self.lattice_history = -1*np.ones((num_record_steps, self.lattice.lattice_size), dtype=np.long)
+            self.lattice_history = -1*np.ones((num_record_steps, self.output_bins_space.shape[0]), dtype=np.long)
             if self.record_lattice:
-                self.lattice_history[0, :] = self.lattice.get_lattice_from_walls()
+                self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
 
         self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
@@ -372,6 +377,7 @@ cdef class Inflation_Lattice_Simulation:
             delta_t = 1./self.lattice.walls.shape[0]
 
             #### Choose a jump direction ####
+
             jump_direction = current_wall.get_jump_direction(r)
             if jump_direction == RIGHT:
                 current_wall.position += 1./self.radius
@@ -430,7 +436,7 @@ cdef class Inflation_Lattice_Simulation:
 
                     # Create lattice
                     if self.record_lattice:
-                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
 
                     # Count annihilations & coalescences
                     self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
@@ -450,7 +456,7 @@ cdef class Inflation_Lattice_Simulation:
 
                     # Create lattice
                     if self.record_lattice:
-                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls()
+                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
 
                     # Count annihilations & coalescences
                     self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
@@ -512,16 +518,16 @@ cdef class Inflation_Lattice_Simulation:
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
-cdef class Selection_Lattice_Simulation(Inflation_Lattice_Simulation):
+cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
 
     cdef:
         public dict delta_prob_dict
 
-    def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
+    def __init__(Selection_Inflation_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
 
         self.delta_prob_dict = delta_prob_dict
         Inflation_Lattice_Simulation.__init__(self, **kwargs)
 
-    def initialize_lattice(Selection_Lattice_Simulation self, **kwargs):
+    def initialize_lattice(Selection_Inflation_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
         return Selection_Lattice(self.delta_prob_dict, debug=self.debug, **kwargs)
