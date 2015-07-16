@@ -57,7 +57,7 @@ cdef class Wall:
             return LEFT
 
 cdef class Selection_Wall(Wall):
-    '''One must define which wall gets a selective advantage. Let's say the biggest.'''
+    '''One must define which wall gets a selective advantage.'''
 
     cdef:
         public dict delta_prob_dict
