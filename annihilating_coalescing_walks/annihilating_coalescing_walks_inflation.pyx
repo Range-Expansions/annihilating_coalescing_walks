@@ -34,16 +34,17 @@ cdef class Wall:
         public  Wall[:] wall_neighbors
         public long[:] wall_type
 
-    def __init__(Wall self, long position_in_lattice, Wall[:] wall_neighbors = None, long[:] wall_type = None):
+    def __init__(Wall self, long position_in_lattice, double position_in_space, Wall[:] wall_neighbors = None, long[:] wall_type = None):
         self.position_in_lattice = position_in_lattice
         # Start out at the position in space equal to the position in the lattice
-        self.position_in_space = position_in_lattice # This deals with changing jump size due to inflation
+        self.position_in_space = position_in_space # This deals with changing jump size due to inflation
         # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
         self.wall_neighbors = wall_neighbors
         # The wall type indicates the type of kink
         self.wall_type = wall_type
 
     def __cmp__(Wall self, Wall other):
+        # We could compare position_in_space as well, but comparing ints is faster
         if self.position_in_lattice < other.position_in_lattice:
             return -1
         elif self.position_in_lattice == other.position_in_lattice:
@@ -59,17 +60,26 @@ cdef class Wall:
         else:
             return LEFT
 
+    cdef double jump_in_direction(Wall self, unsigned int direction, double cur_radius):
+        cdef int sign
+        if direction == LEFT:
+            sign = -1
+        elif direction == RIGHT:
+            sign = 1
+        self.position_in_space += sign * 1./cur_radius
+
 cdef class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage.'''
 
     cdef:
         public dict delta_prob_dict
 
-    def __init__(Selection_Wall self, long position_in_lattice,
+    def __init__(Selection_Wall self, long position_in_lattice, double position_in_space,
                  Selection_Wall[:] wall_neighbors=None, long[:] wall_type = None,
                  dict delta_prob_dict = None):
         '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
-        Wall.__init__(self, position_in_lattice, wall_neighbors = wall_neighbors, wall_type = wall_type)
+        Wall.__init__(self, position_in_lattice, position_in_space, wall_neighbors = wall_neighbors,
+                      wall_type = wall_type)
         self.delta_prob_dict = delta_prob_dict
 
     cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
@@ -112,7 +122,7 @@ cdef class Lattice:
         wall_list = []
         wall_positions = np.where(wall_locations)[0]
         for cur_position in wall_positions:
-            wall_list.append(self.get_new_wall(cur_position))
+            wall_list.append(self.get_new_wall(cur_position, float(cur_position)))
         wall_list = np.array(wall_list)
 
         # Sort the wall list
@@ -130,7 +140,7 @@ cdef class Lattice:
         # Indicate what type of wall the wall is
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
-            cur_position = wall_list[i].position
+            cur_position = wall_list[i].position_in_lattice
 
             left_index = np.mod(cur_position - 1, self.lattice_size)
             right_index = cur_position
@@ -209,19 +219,21 @@ cdef class Lattice:
         cdef long type_after_collision_left = left_wall.wall_type[0]
         cdef long type_after_collision_right = right_wall.wall_type[1]
 
-        cdef long new_position
+        cdef long new_lattice_position
+        cdef double new_position_in_space
         cdef long[:] new_type
 
         if type_after_collision_left != type_after_collision_right:
-            new_position = left_wall.position_in_lattice
+            new_lattice_position = left_wall.position_in_lattice
+            new_position_in_space = left_wall.position_in_space
             new_type = np.array([type_after_collision_left, type_after_collision_right])
-            new_wall = self.get_new_wall(new_position, wall_type = new_type)
+            new_wall = self.get_new_wall(new_lattice_position, new_position_in_space, wall_type = new_type)
 
         cdef Wall wall_after, wall_before
         cdef long before_index, after_index
         cdef long[:] to_delete
 
-        if self.walls[c_pos_mod(left_wall_index + 1, self.walls.shape[0])].position != self.walls[left_wall_index].position:
+        if self.walls[c_pos_mod(left_wall_index + 1, self.walls.shape[0])].position_in_lattice != self.walls[left_wall_index].position_in_lattice:
             print 'Something is screwed up...walls are colliding with themselves?'
 
         if new_wall is not None: # Coalesce
@@ -264,9 +276,9 @@ cdef class Lattice:
             self.walls = np.delete(self.walls, to_delete)
             return ANNIHILATE
 
-    cdef get_new_wall(self, long new_position, wall_type=None, wall_neighbors=None):
+    cdef get_new_wall(self, long new_lattice_position, double new_space_position, wall_type=None, wall_neighbors=None):
         '''Creates a new wall appropriate for the lattice. Necessary for subclassing.'''
-        return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
+        return Wall(new_lattice_position, new_space_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
 cdef class Selection_Lattice(Lattice):
     cdef:
@@ -278,11 +290,11 @@ cdef class Selection_Lattice(Lattice):
         # in order for walls to be created correctly.
         Lattice.__init__(self, **kwargs)
 
-    cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
+    cdef get_new_wall(self, long new_lattice_position, double new_space_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
-        return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
+        return Selection_Wall(new_lattice_position, new_space_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
-cdef class Lattice_Simulation:
+cdef class Inflation_Lattice_Simulation:
 
     cdef:
         public double record_every
@@ -302,9 +314,12 @@ cdef class Lattice_Simulation:
 
         public unsigned long int seed
 
-    def __init__(Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
+        public double radius
+        public double velocity
+
+    def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, **kwargs):
+                 record_coal_annih_type = False, double Ro = 1., double v = 0.01, **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
@@ -324,11 +339,15 @@ cdef class Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-    def initialize_lattice(Lattice_Simulation self, **kwargs):
-        '''Necessary for subclassing.'''
+        # Parameters dealing with inflation
+        self.radius = Ro
+        self.velocity = v
+
+    def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
+        """Necessary for subclassing."""
         return Lattice(debug=self.debug, **kwargs)
 
-    def reset(Lattice_Simulation self, seed):
+    def reset(Inflation_Lattice_Simulation self, seed):
         self.seed = seed
         np.random.seed(self.seed)
         self.lattice.reset()
@@ -340,7 +359,7 @@ cdef class Lattice_Simulation:
         self.num_walls_array = None
 
 
-    def run(Lattice_Simulation self, double max_time):
+    def run(Inflation_Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
         cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
@@ -391,6 +410,7 @@ cdef class Lattice_Simulation:
                 print 'Before jump'
                 print [z.position for z in self.lattice.walls]
 
+            # TODO: Choose a wall randomly...is this right with selection?
             current_wall_index = gsl_rng_uniform_int(r, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[current_wall_index]
             if self.debug:
@@ -401,16 +421,21 @@ cdef class Lattice_Simulation:
             #### Choose a jump direction ####
             jump_direction = current_wall.get_jump_direction(r)
             if jump_direction == RIGHT:
-                current_wall.position_in_lattice += 1
+                current_wall.jump_in_direction(RIGHT, self.radius)
+                current_wall.position_in_lattice += 1 #TODO: This makes no sense in the current implementation
+
                 # No mod here, as we have to do extra stuff if there is a problem.
-                if current_wall.position_in_lattice == self.lattice.lattice_size:
+                if current_wall.position_in_space > self.lattice.lattice_size:
                     current_wall.position_in_lattice = 0
+                    current_wall.position_in_space -= self.lattice.lattice_size
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
                     current_wall_index = 0
-            else:
-                current_wall.position_in_lattice -= 1
+            else: ### Jump Left
+                current_wall.position_in_lattice -= 1 #TODO: This doesn't make sense either
+                current_wall.jump_in_direction(LEFT, self.radius)
                 if current_wall.position_in_lattice < 0:
-                    current_wall.position_in_lattice = self.lattice.lattice_size - 1
+                    current_wall.position_in_space += self.lattice.lattice_size
+                    current_wall.position_in_lattice = self.lattice.lattice_size - 1 # TODO doesn't maek sense
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
                     current_wall_index = self.lattice.walls.shape[0] - 1
 
@@ -515,6 +540,9 @@ cdef class Lattice_Simulation:
                 print
                 print
 
+            ### Inflate the system ####
+            self.radius += self.velocity * delta_t
+
         #### Simulation is done; finish up. ####
 
         if self.verbose:
@@ -536,16 +564,16 @@ cdef class Lattice_Simulation:
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
-cdef class Selection_Lattice_Simulation(Lattice_Simulation):
+cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
 
     cdef:
         public dict delta_prob_dict
 
-    def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
+    def __init__(Selection_Inflation_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
 
         self.delta_prob_dict = delta_prob_dict
-        Lattice_Simulation.__init__(self, **kwargs)
+        Inflation_Lattice_Simulation.__init__(self, **kwargs)
 
-    def initialize_lattice(Selection_Lattice_Simulation self, **kwargs):
+    def initialize_lattice(Selection_Inflation_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
         return Selection_Lattice(self.delta_prob_dict, debug=self.debug, **kwargs)
