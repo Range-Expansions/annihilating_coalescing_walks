@@ -29,21 +29,24 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 cdef class Wall:
 
     cdef:
-        public long position
+        public long position_in_lattice
+        public double position_in_space
         public  Wall[:] wall_neighbors
         public long[:] wall_type
 
-    def __init__(Wall self, long position, Wall[:] wall_neighbors = None, long[:] wall_type = None):
-        self.position = position
+    def __init__(Wall self, long position_in_lattice, Wall[:] wall_neighbors = None, long[:] wall_type = None):
+        self.position_in_lattice = position_in_lattice
+        # Start out at the position in space equal to the position in the lattice
+        self.position_in_space = position_in_lattice # This deals with changing jump size due to inflation
         # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
         self.wall_neighbors = wall_neighbors
         # The wall type indicates the type of kink
         self.wall_type = wall_type
 
     def __cmp__(Wall self, Wall other):
-        if self.position < other.position:
+        if self.position_in_lattice < other.position_in_lattice:
             return -1
-        elif self.position == other.position:
+        elif self.position_in_lattice == other.position_in_lattice:
             return 0
         else:
             return 1
@@ -62,11 +65,11 @@ cdef class Selection_Wall(Wall):
     cdef:
         public dict delta_prob_dict
 
-    def __init__(Selection_Wall self, long position,
+    def __init__(Selection_Wall self, long position_in_lattice,
                  Selection_Wall[:] wall_neighbors=None, long[:] wall_type = None,
                  dict delta_prob_dict = None):
         '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
-        Wall.__init__(self, position, wall_neighbors = wall_neighbors, wall_type = wall_type)
+        Wall.__init__(self, position_in_lattice, wall_neighbors = wall_neighbors, wall_type = wall_type)
         self.delta_prob_dict = delta_prob_dict
 
     cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
@@ -153,16 +156,16 @@ cdef class Lattice:
         if num_walls > 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
-                if cur_wall.position == i:
+                if cur_wall.position_in_lattice == i:
                     cur_wall = cur_wall.wall_neighbors[1]
                     output_str += '_'
                 output_str += str(cur_wall.wall_type[0])
         elif num_walls == 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
-                if i < cur_wall.position:
+                if i < cur_wall.position_in_lattice:
                     output_str += str(cur_wall.wall_type[0])
-                elif i == cur_wall.position:
+                elif i == cur_wall.position_in_lattice:
                     output_str += '_'
                     output_str += str(cur_wall.wall_type[1])
                 else:
@@ -184,13 +187,13 @@ cdef class Lattice:
         if num_walls > 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
-                if cur_wall.position == i:
+                if cur_wall.position_in_lattice == i:
                     cur_wall = cur_wall.wall_neighbors[1]
                 output_lattice[i] = cur_wall.wall_type[0]
         elif num_walls == 1:
             cur_wall = self.walls[0]
             for i in range(self.lattice_size):
-                if i < cur_wall.position:
+                if i < cur_wall.position_in_lattice:
                     output_lattice[i] = cur_wall.wall_type[0]
                 else:
                     output_lattice[i] = cur_wall.wall_type[1]
@@ -210,7 +213,7 @@ cdef class Lattice:
         cdef long[:] new_type
 
         if type_after_collision_left != type_after_collision_right:
-            new_position = left_wall.position
+            new_position = left_wall.position_in_lattice
             new_type = np.array([type_after_collision_left, type_after_collision_right])
             new_wall = self.get_new_wall(new_position, wall_type = new_type)
 
@@ -261,7 +264,7 @@ cdef class Lattice:
             self.walls = np.delete(self.walls, to_delete)
             return ANNIHILATE
 
-    cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors=None):
+    cdef get_new_wall(self, long new_position, wall_type=None, wall_neighbors=None):
         '''Creates a new wall appropriate for the lattice. Necessary for subclassing.'''
         return Wall(new_position, wall_type=wall_type, wall_neighbors=wall_neighbors)
 
@@ -391,23 +394,23 @@ cdef class Lattice_Simulation:
             current_wall_index = gsl_rng_uniform_int(r, self.lattice.walls.shape[0])
             current_wall = self.lattice.walls[current_wall_index]
             if self.debug:
-                print 'Current wall position:' , current_wall.position
+                print 'Current wall position:' , current_wall.position_in_lattice
             # Determine time increment before deletion of walls
             delta_t = 1./self.lattice.walls.shape[0]
 
             #### Choose a jump direction ####
             jump_direction = current_wall.get_jump_direction(r)
             if jump_direction == RIGHT:
-                current_wall.position += 1
+                current_wall.position_in_lattice += 1
                 # No mod here, as we have to do extra stuff if there is a problem.
-                if current_wall.position == self.lattice.lattice_size:
-                    current_wall.position = 0
+                if current_wall.position_in_lattice == self.lattice.lattice_size:
+                    current_wall.position_in_lattice = 0
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
                     current_wall_index = 0
             else:
-                current_wall.position -= 1
-                if current_wall.position < 0:
-                    current_wall.position = self.lattice.lattice_size - 1
+                current_wall.position_in_lattice -= 1
+                if current_wall.position_in_lattice < 0:
+                    current_wall.position_in_lattice = self.lattice.lattice_size - 1
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
                     current_wall_index = self.lattice.walls.shape[0] - 1
 
@@ -420,14 +423,14 @@ cdef class Lattice_Simulation:
 
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
-                if current_wall.position == left_neighbor.position:
+                if current_wall.position_in_lattice == left_neighbor.position_in_lattice:
                     if self.debug:
                         print 'Jump Left Collision!'
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
-                if current_wall.position == right_neighbor.position:
+                if current_wall.position_in_lattice == right_neighbor.position_in_lattice:
                     if self.debug:
                         print 'Jump Right Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
@@ -506,7 +509,7 @@ cdef class Lattice_Simulation:
 
                     if (left_neighbor_position != actual_left_position) or (right_neighbor_position != actual_right_position):
                         print 'Neighbors are messed up. Neighbor positions and actual positions do not line up.'
-                        print 'Problem position is ', current_wall.position
+                        print 'Problem position is ', current_wall.position_in_lattice
                         print 'It thinks neighbors are' , left_neighbor_position , right_neighbor_position
                         print 'Its neigbors actually are', actual_left_position, actual_right_position
                 print
