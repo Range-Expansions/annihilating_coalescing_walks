@@ -104,6 +104,7 @@ cdef class Lattice:
         self.walls = self.get_walls()
 
     cdef Wall[:] get_walls(Lattice self):
+        """Only to be used when initializing. If used again, terrible, terrible things will happen."""
         right_shift = np.roll(self.lattice, 1)
         wall_locations = self.lattice != right_shift
         wall_list = []
@@ -127,7 +128,7 @@ cdef class Lattice:
         # Indicate what type of wall the wall is
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
-            cur_position = wall_list[i].position
+            cur_position = int(np.round(wall_list[i].position))
 
             left_index = np.mod(cur_position - 1, self.lattice_size)
             right_index = cur_position
@@ -139,39 +140,7 @@ cdef class Lattice:
 
         return wall_list
 
-    cpdef str get_lattice_str(Lattice self):
-        '''Assumes walls are already sorted...as they should be..'''
-
-        # Gives the lattice string SOLELY in terms of wall position
-        cdef str output_str = ''
-        cdef int num_walls = self.walls.shape[0]
-        # Loop through the walls in terms of position
-
-        cdef Wall cur_wall
-        cdef int i
-
-        if num_walls > 1:
-            cur_wall = self.walls[0]
-            for i in range(self.lattice_size):
-                if cur_wall.position == i:
-                    cur_wall = cur_wall.wall_neighbors[1]
-                    output_str += '_'
-                output_str += str(cur_wall.wall_type[0])
-        elif num_walls == 1:
-            cur_wall = self.walls[0]
-            for i in range(self.lattice_size):
-                if i < cur_wall.position:
-                    output_str += str(cur_wall.wall_type[0])
-                elif i == cur_wall.position:
-                    output_str += '_'
-                    output_str += str(cur_wall.wall_type[1])
-                else:
-                    output_str += str(cur_wall.wall_type[1])
-        else:
-            print 'No walls...I cannot determine lattice information from walls!'''
-        return output_str
-
-    cpdef long[:] get_lattice_from_walls(Lattice self):
+    cpdef long[:] get_lattice_from_walls(Lattice self): #TODO: NO longer works or makes sense in this context
         '''Returns the lattice array'''
 
         cdef long[:] output_lattice = -1*np.ones(self.lattice_size, dtype=np.long)
@@ -275,11 +244,11 @@ cdef class Selection_Lattice(Lattice):
         # in order for walls to be created correctly.
         Lattice.__init__(self, **kwargs)
 
-    cdef get_new_wall(self, new_position, wall_type=None, wall_neighbors = None):
+    cdef get_new_wall(self, double new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
 
-cdef class Lattice_Simulation:
+cdef class Inflation_Lattice_Simulation:
 
     cdef:
         public double record_every
@@ -290,7 +259,7 @@ cdef class Lattice_Simulation:
 
         public Lattice lattice
         public double[:] time_array
-        public long[:, :] lattice_history
+        public double[:, :] lattice_history
         public double[:] record_time_array
 
         public double[:] annihilation_array
@@ -299,9 +268,12 @@ cdef class Lattice_Simulation:
 
         public unsigned long int seed
 
-    def __init__(Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
+        public double radius
+        public double velocity
+
+    def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, **kwargs):
+                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01,  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
         self.record_lattice = record_lattice
@@ -321,11 +293,15 @@ cdef class Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-    def initialize_lattice(Lattice_Simulation self, **kwargs):
+        self.radius = radius
+        self.velocity = velocity
+
+
+    def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
         return Lattice(debug=self.debug, **kwargs)
 
-    def reset(Lattice_Simulation self, seed):
+    def reset(Inflation_Lattice_Simulation self, seed):
         self.seed = seed
         np.random.seed(self.seed)
         self.lattice.reset()
@@ -337,7 +313,7 @@ cdef class Lattice_Simulation:
         self.num_walls_array = None
 
 
-    def run(Lattice_Simulation self, double max_time):
+    def run(Inflation_Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
         cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
@@ -398,16 +374,16 @@ cdef class Lattice_Simulation:
             #### Choose a jump direction ####
             jump_direction = current_wall.get_jump_direction(r)
             if jump_direction == RIGHT:
-                current_wall.position += 1
+                current_wall.position += 1./self.radius
                 # No mod here, as we have to do extra stuff if there is a problem.
-                if current_wall.position == self.lattice.lattice_size:
-                    current_wall.position = 0
+                if current_wall.position > self.lattice.lattice_size:
+                    current_wall.position -= self.lattice.lattice_size
                     self.lattice.walls = np.roll(self.lattice.walls, 1)
                     current_wall_index = 0
             else:
-                current_wall.position -= 1
+                current_wall.position -= 1./self.radius
                 if current_wall.position < 0:
-                    current_wall.position = self.lattice.lattice_size - 1
+                    current_wall.position += self.lattice.lattice_size
                     self.lattice.walls = np.roll(self.lattice.walls, -1)
                     current_wall_index = self.lattice.walls.shape[0] - 1
 
@@ -420,14 +396,14 @@ cdef class Lattice_Simulation:
 
             if jump_direction == LEFT:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
-                if current_wall.position == left_neighbor.position:
+                if current_wall.position <= left_neighbor.position:
                     if self.debug:
                         print 'Jump Left Collision!'
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
             if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
-                if current_wall.position == right_neighbor.position:
+                if current_wall.position >= right_neighbor.position:
                     if self.debug:
                         print 'Jump Right Collision!'
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
@@ -512,6 +488,9 @@ cdef class Lattice_Simulation:
                 print
                 print
 
+            #### Inflate! #####
+            self.radius += delta_t * self.velocity
+
         #### Simulation is done; finish up. ####
 
         if self.verbose:
@@ -533,7 +512,7 @@ cdef class Lattice_Simulation:
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
-cdef class Selection_Lattice_Simulation(Lattice_Simulation):
+cdef class Selection_Lattice_Simulation(Inflation_Lattice_Simulation):
 
     cdef:
         public dict delta_prob_dict
@@ -541,7 +520,7 @@ cdef class Selection_Lattice_Simulation(Lattice_Simulation):
     def __init__(Selection_Lattice_Simulation self, dict delta_prob_dict, **kwargs):
 
         self.delta_prob_dict = delta_prob_dict
-        Lattice_Simulation.__init__(self, **kwargs)
+        Inflation_Lattice_Simulation.__init__(self, **kwargs)
 
     def initialize_lattice(Selection_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
