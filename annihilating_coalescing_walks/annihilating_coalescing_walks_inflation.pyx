@@ -261,6 +261,8 @@ cdef class Inflation_Lattice_Simulation:
         public Lattice lattice
         public double[:] time_array
         public long[:, :] lattice_history
+        public list wall_position_history
+        public bool record_wall_position
         public double[:] record_time_array
 
         public double[:] annihilation_array
@@ -277,6 +279,7 @@ cdef class Inflation_Lattice_Simulation:
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01, lattice_spacing_output=0.5,
+                 record_wall_position = False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -293,6 +296,7 @@ cdef class Inflation_Lattice_Simulation:
 
         self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
+        self.wall_position_history = None
         self.coalescence_array = None
         self.annihilation_array = None
         self.num_walls_array = None
@@ -302,6 +306,8 @@ cdef class Inflation_Lattice_Simulation:
 
         self.lattice_spacing_output = lattice_spacing_output
         self.output_bins_space = None
+
+        self.record_wall_positoin = record_wall_position
 
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
@@ -343,6 +349,7 @@ cdef class Inflation_Lattice_Simulation:
         self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.num_walls_array = -1*np.ones(num_record_steps, dtype=np.long)
+        self.wall_position_history = []
 
         self.coalescence_array[0] = 0
         self.annihilation_array[0] = 0
@@ -468,6 +475,9 @@ cdef class Inflation_Lattice_Simulation:
                     # Increment the number recorded
                     time_remainder = 0
                     num_recorded += 1
+
+                    if self.record_wall_position:
+                        self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             else: # Record at given times
                 if cur_time >= self.record_time_array[num_recorded]:
