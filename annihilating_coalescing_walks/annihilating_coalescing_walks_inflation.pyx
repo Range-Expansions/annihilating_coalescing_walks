@@ -376,9 +376,8 @@ cdef class Inflation_Lattice_Simulation:
             left_edge = False
 
             current_wall_index = gsl_rng_uniform_int(r, self.lattice.walls.shape[0])
-
             if (current_wall_index == 0): left_edge = True
-            if (current_wall_index == right_edge): right_edge = True
+            if (current_wall_index == self.lattice.walls.shape[0] - 1): right_edge = True
 
             current_wall = self.lattice.walls[current_wall_index]
             if self.debug:
