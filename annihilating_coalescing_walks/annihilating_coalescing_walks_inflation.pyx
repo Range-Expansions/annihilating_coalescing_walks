@@ -1,6 +1,6 @@
 #cython: profile=False
-#cython: boundscheck=False
-#cython: initializedcheck=False
+#cython: boundscheck=True
+#cython: initializedcheck=True
 #cython: nonecheck=False
 #cython: wraparound=False
 #cython: cdivision=True
@@ -278,8 +278,8 @@ cdef class Inflation_Lattice_Simulation:
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01, lattice_spacing_output=0.5,
-                 record_wall_position = False,
+                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01, double lattice_spacing_output=0.5,
+                 bool record_wall_position=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -307,7 +307,7 @@ cdef class Inflation_Lattice_Simulation:
         self.lattice_spacing_output = lattice_spacing_output
         self.output_bins_space = None
 
-        self.record_wall_positoin = record_wall_position
+        self.record_wall_position = record_wall_position
 
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
@@ -345,11 +345,13 @@ cdef class Inflation_Lattice_Simulation:
             self.lattice_history = -1*np.ones((num_record_steps, self.output_bins_space.shape[0]), dtype=np.long)
             if self.record_lattice:
                 self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
+        if self.record_wall_position:
+            self.wall_position_history = []
+            self.wall_position_history.append([z.position for z in self.lattice.walls])
 
-        self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
-        self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
-        self.num_walls_array = -1*np.ones(num_record_steps, dtype=np.long)
-        self.wall_position_history = []
+        self.coalescence_array = -1*np.ones(num_record_steps + 1, dtype=np.double)
+        self.annihilation_array = -1*np.ones(num_record_steps + 1, dtype=np.double)
+        self.num_walls_array = -1*np.ones(num_record_steps + 1, dtype=np.long)
 
         self.coalescence_array[0] = 0
         self.annihilation_array[0] = 0
@@ -480,7 +482,7 @@ cdef class Inflation_Lattice_Simulation:
                         self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             else: # Record at given times
-                if cur_time >= self.record_time_array[num_recorded]:
+                if cur_time >= self.record_time_array[num_recorded - 1]: # Need the minus 1, as the zero is always recorded
 
                     # Create lattice
                     if self.record_lattice:
@@ -499,6 +501,11 @@ cdef class Inflation_Lattice_Simulation:
                     num_recorded += 1
 
                     time_remainder = 0 # time-remainder acts as the delta t in this case.
+
+                    # Record wall positions
+
+                    if self.record_wall_position:
+                        self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             # Refresh for the next time interval
             step_count += 1
