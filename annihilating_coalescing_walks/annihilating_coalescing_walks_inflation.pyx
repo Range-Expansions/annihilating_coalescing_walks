@@ -385,54 +385,49 @@ cdef class Inflation_Lattice_Simulation:
                 if jump_direction is RIGHT:
                     print 'Jump right!'
             if jump_direction == RIGHT:
-                current_wall.position += 1./self.radius
-                # No mod here, as we have to do extra stuff if there is a problem.
-                #if current_wall.position > self.lattice.lattice_size:
-                #    current_wall.position -= self.lattice.lattice_size
-                #    self.lattice.walls = np.roll(self.lattice.walls, 1)
-                #    current_wall_index = 0
-                #    wrap_around_event = True
-            else: # Jump left
-                current_wall.position -= 1./self.radius
-                #if current_wall.position < 0:
-                #    current_wall.position += self.lattice.lattice_size
-                #    self.lattice.walls = np.roll(self.lattice.walls, -1)
-                #    current_wall_index = self.lattice.walls.shape[0] - 1
-                #    wrap_around_event=True
-
-            #### Debug ####
-            if self.debug:
-                print 'After jump'
-                print [z.position for z in self.lattice.walls]
-
-            #### Deal with collisions ####
-
-            if jump_direction == LEFT:
-                left_neighbor = current_wall.wall_neighbors[LEFT]
-
-                cur_position = current_wall.position
-                left_neighbor_position = left_neighbor.position
-
-                left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
-
-                if (cur_position <= left_neighbor.position) and ((not left_edge) or wrap_around_event):
-                    if self.debug:
-                        print 'Jump Left Collision!'
-                        print 'left edge', left_edge
-                        print 'righ edge', right_edge
-                        print 'wrap_around_event', wrap_around_event
-                    left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
-                    collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
-            if jump_direction == RIGHT:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
+                adjusted_right_neighbor_position = right_neighbor.position
+                if adjusted_right_neighbor_position < current_wall.position: # There is a wrap around:
+                    adjusted_right_neighbor_position += self.lattice.lattice_size
+                distance_between_walls = adjusted_right_neighbor_position - current_wall.position
 
-                if (current_wall.position >= right_neighbor.position) and ((not right_edge) or wrap_around_event):
+                distance_moved = 1./self.radius
+
+                if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
                         print 'Jump Right Collision!'
-                        print 'left edge', left_edge
-                        print 'right edge' , right_edge
-                        print 'wrap_around_event', wrap_around_event
+                    current_wall.position = right_neighbor.position
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
+                else: # Deal with wrapping
+                    current_wall.position += distance_moved
+                    if current_wall.position > self.lattice.lattice_size:
+                        current_wall.position -= self.lattice.lattice_size
+                        self.lattice.walls = np.roll(self.lattice.walls, 1)
+                        current_wall_index = 0
+
+            if jump_direction == LEFT: # Jump left
+                left_neighbor = current_wall.wall_neighbors[LEFT]
+                adjusted_left_neighbor_position = left_neighbor.position
+                if adjusted_left_neighbor_position > current_wall.position: # There is a wrap around:
+                    adjusted_left_neighbor_position -= self.lattice.lattice_size
+                distance_between_walls = current_wall.position - adjusted_left_neighbor_position
+
+                distance_moved = 1./self.radius
+
+                if distance_between_walls <= distance_moved: #Collision!'
+                    if self.debug:
+                        print 'Jump Left Collision!'
+                    left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
+                    # Left neighbor position is where the collision should happen.
+                    collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
+                else: # Deal with wrapping
+                    current_wall.position -= distance_moved
+                    if current_wall.position < 0:
+                        current_wall.position += self.lattice.lattice_size
+                        self.lattice.walls = np.roll(self.lattice.walls, -1)
+                        current_wall_index = self.lattice.walls.shape[0] - 1
+
+            #### Count collisions ####
 
             if collision_type is not NO_COLLISIONS:
                 if collision_type == ANNIHILATE:
@@ -511,6 +506,11 @@ cdef class Inflation_Lattice_Simulation:
                         print 'Problem position is ', current_wall.position
                         print 'It thinks neighbors are' , left_neighbor_position , right_neighbor_position
                         print 'Its neigbors actually are', actual_left_position, actual_right_position
+
+            if self.debug:
+                cur_positions = [wall.position for wall in self.lattice.walls]
+                if sorted(cur_positions) != cur_positions:
+                    print 'The walls are not ordered correctly. Something terrible has happened.'
                 print
                 print
 
