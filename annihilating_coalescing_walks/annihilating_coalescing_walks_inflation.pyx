@@ -151,17 +151,20 @@ cdef class Lattice:
         cdef int i
         cdef Wall cur_wall
 
+        cdef int num_walls_passed = 0
         if num_walls > 1:
             cur_wall = self.walls[0]
             for i in range(output_bins_space.shape[0]):
-                if cur_wall.position <= output_bins_space[i]:
+                if (cur_wall.position <= output_bins_space[i]) and (num_walls_passed != self.walls.shape[0]):
                     cur_wall = cur_wall.wall_neighbors[RIGHT]
+                    num_walls_passed += 1
                 output_lattice[i] = cur_wall.wall_type[LEFT]
         elif num_walls == 1:
             cur_wall = self.walls[0]
             for i in range(output_bins_space.shape[0]):
-                if output_bins_space[i] < cur_wall.position:
+                if (output_bins_space[i] < cur_wall.position) and (num_walls_passed != self.walls.shape[0]):
                     output_lattice[i] = cur_wall.wall_type[0]
+                    num_walls_passed += 1
                 else:
                     output_lattice[i] = cur_wall.wall_type[1]
         else:
@@ -511,6 +514,7 @@ cdef class Inflation_Lattice_Simulation:
                 cur_positions = [wall.position for wall in self.lattice.walls]
                 if sorted(cur_positions) != cur_positions:
                     print 'The walls are not ordered correctly. Something terrible has happened.'
+                    print cur_positions
                 print
                 print
 
