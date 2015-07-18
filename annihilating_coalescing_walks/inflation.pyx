@@ -479,7 +479,8 @@ cdef class Inflation_Lattice_Simulation:
                     num_recorded += 1
 
                     if self.record_wall_position:
-                        self.wall_position_history.append([z.position for z in self.lattice.walls])
+                        if self.lattice.walls.shape[0] != 0:
+                            self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             else: # Record at given times
                 if cur_time >= self.record_time_array[num_recorded - 1]: # Need the minus 1, as the zero is always recorded
@@ -505,7 +506,8 @@ cdef class Inflation_Lattice_Simulation:
                     # Record wall positions
 
                     if self.record_wall_position:
-                        self.wall_position_history.append([z.position for z in self.lattice.walls])
+                        if self.lattice.walls.shape[0] != 0:
+                            self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             # Refresh for the next time interval
             step_count += 1
