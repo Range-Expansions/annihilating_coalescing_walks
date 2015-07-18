@@ -329,6 +329,7 @@ cdef class Inflation_Lattice_Simulation:
     def run(Inflation_Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
+
         cdef gsl_rng *r = gsl_rng_alloc(gsl_rng_mt19937)
         gsl_rng_set(r, self.seed)
 
@@ -538,7 +539,7 @@ cdef class Inflation_Lattice_Simulation:
                 print
 
             #### Inflate! #####
-            self.radius += delta_t * self.velocity
+            self.radius +=  delta_t * self.velocity
 
         #### Simulation is done; finish up. ####
 
