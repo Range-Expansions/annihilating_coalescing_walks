@@ -374,6 +374,7 @@ cdef class Inflation_Lattice_Simulation:
             unsigned int collision_type = NO_COLLISIONS
             Wall left_neighbor, right_neighbor
             long left_wall_index
+            double distance_moved
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
             #### Debug ####
