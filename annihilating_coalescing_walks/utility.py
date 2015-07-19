@@ -2,8 +2,21 @@ import numpy as np
 import pandas as pd
 import annihilating_coalescing_walks as acw
 
-def get_log_record_times(min_power, max_power, num_to_record = 300):
-    return np.logspace(min_power, max_power, num_to_record)
+def get_log_record_times(max_order, number_per_interval=100):
+    if number_per_interval > 200:
+        print '200 point is the most that can be done per octave without' \
+              'looking at a scale less than O(1)'
+        return None
+    else:
+        if max_order == 1:
+            return np.arange(1, 11)
+        elif max_order == 2:
+            return np.arange(1, 101)
+        else:
+            first_two_orders = np.arange(1, 101)
+            num_octaves = max_order - 2
+            rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves)
+            return np.hstack((first_two_orders, rest_of_orders))
 
 def get_simulation_df(sim, max_time_power = 8):
 
