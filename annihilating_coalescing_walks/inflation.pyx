@@ -340,6 +340,8 @@ cdef class Inflation_Lattice_Simulation:
         else: # Record at specified times
             num_record_steps = self.record_time_array.shape[0]
             self.time_array = self.record_time_array.copy()
+            # Actually append to the time array...say that we are recording at time 0.
+            self.time_array = np.insert(self.time_array, 0, 0.0)
 
         self.output_bins_space = np.arange(0, self.lattice.lattice_size + self.lattice_spacing_output, self.lattice_spacing_output)
         if self.record_lattice:
