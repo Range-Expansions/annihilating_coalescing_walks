@@ -71,6 +71,7 @@ cdef class Selection_Wall(Wall):
 
     cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
         # Get the change in probability of jumping left and right.
+
         cdef double right_prob_change = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
 
         cdef double random_num = gsl_rng_uniform(r)
@@ -143,7 +144,6 @@ cdef class Lattice:
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
                 previous_wall_type = new_wall_type
-
             count += 1
 
         wall_list = np.array(wall_list)
@@ -169,11 +169,6 @@ cdef class Lattice:
 
             left_index = np.mod(cur_position - 1, self.lattice_size)
             right_index = cur_position
-
-            left_of_kink = self.lattice[left_index]
-            right_of_kink = self.lattice[right_index]
-            cur_type = np.array([left_of_kink, right_of_kink])
-            cur_wall.wall_type = cur_type
 
         return wall_list
 
@@ -284,7 +279,7 @@ cdef class Selection_Lattice(Lattice):
 
     cdef get_new_wall(self, double new_position, wall_type=None, wall_neighbors = None):
         '''What is returned when a new wall is created via coalescence.'''
-        return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict)
+        return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict, wall_neighbors=wall_neighbors)
 
 cdef class Inflation_Lattice_Simulation:
 
