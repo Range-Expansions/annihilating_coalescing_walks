@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -118,6 +118,9 @@ cdef class Lattice:
         # Create walls
         wall_list = []
 
+        # Sort the positions
+        wall_positions = np.sort(wall_positions)
+
         previous_wall_type = None
         new_wall_type = None
         count = 0
@@ -125,18 +128,18 @@ cdef class Lattice:
             if count == 0:
                 previous_wall_type = np.random.randint(self.num_types)
                 new_wall_type = np.random.randint(self.num_types)
-                wall_type = np.array([previous_wall_type, new_wall_type])
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
                 previous_wall_type = new_wall_type
             elif count == num_walls - 1:
                 new_wall_type = wall_list[0].wall_type[LEFT]
-                wall_type = np.array([previous_wall_type, new_wall_type])
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
             else:
                 new_wall_type = np.random.randint(self.num_types)
-                wall_type = np.array([previous_wall_type, new_wall_type])
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
                 previous_wall_type = new_wall_type
@@ -145,8 +148,10 @@ cdef class Lattice:
 
         wall_list = np.array(wall_list)
 
+        # wall_list should be in order now
+
         # Sort the wall list
-        wall_list = np.sort(wall_list, axis=None)
+        # wall_list = np.sort(wall_list, axis=None)
 
         # Assign neighbors
         for i in range(wall_list.shape[0]):
