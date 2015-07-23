@@ -377,6 +377,7 @@ cdef class Inflation_Lattice_Simulation:
             Wall left_neighbor, right_neighbor
             long left_wall_index
             double distance_moved
+            double initial_radius = self.radius
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
             #### Debug ####
@@ -542,7 +543,7 @@ cdef class Inflation_Lattice_Simulation:
                 print
 
             #### Inflate! #####
-            self.radius +=  delta_t * self.velocity
+            self.radius = initial_radius + self.velocity*cur_time
 
         #### Simulation is done; finish up. ####
 
