@@ -129,6 +129,8 @@ cdef class Lattice:
             if count == 0:
                 previous_wall_type = np.random.randint(self.num_types)
                 new_wall_type = np.random.randint(self.num_types)
+                while new_wall_type == previous_wall_type: # The wall has to be different...
+                    new_wall_type = np.random.randint(self.num_types)
                 wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
@@ -140,6 +142,8 @@ cdef class Lattice:
                 wall_list.append(new_wall)
             else:
                 new_wall_type = np.random.randint(self.num_types)
+                while new_wall_type == previous_wall_type: # The wall has to be different...
+                    new_wall_type = np.random.randint(self.num_types)
                 wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
@@ -159,16 +163,10 @@ cdef class Lattice:
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
             wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
 
-        cdef long left_index
-        cdef long right_index
+        if self.debug:
+            print 'Debugging initial wall condition...'
+            # The wall positions can be debugged elsewhere...check neighbors.
 
-        # Indicate what type of wall the wall is
-        for i in range(wall_list.shape[0]):
-            cur_wall = wall_list[i]
-            cur_position = int(np.round(wall_list[i].position))
-
-            left_index = np.mod(cur_position - 1, self.lattice_size)
-            right_index = cur_position
 
         return wall_list
 
