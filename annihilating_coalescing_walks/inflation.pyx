@@ -368,7 +368,7 @@ cdef class Inflation_Lattice_Simulation:
              num_record_steps = long(max_time / self.record_every) + 1
              self.time_array = np.zeros(num_record_steps, dtype=np.double)
         else: # Record at specified times
-            num_record_steps = self.record_time_array.shape[0]
+            num_record_steps = self.record_time_array.shape[0] + 1 # Since we always record 0
             self.time_array = self.record_time_array.copy()
             # Actually append to the time array...say that we are recording at time 0.
             self.time_array = np.insert(self.time_array, 0, 0.0)
@@ -376,15 +376,14 @@ cdef class Inflation_Lattice_Simulation:
         self.output_bins_space = np.arange(0, self.lattice.lattice_size + self.lattice_spacing_output, self.lattice_spacing_output)
         if self.record_lattice:
             self.lattice_history = -1*np.ones((num_record_steps, self.output_bins_space.shape[0]), dtype=np.long)
-            if self.record_lattice:
-                self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
+            self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
         if self.record_wall_position:
             self.wall_position_history = []
             self.wall_position_history.append([z.position for z in self.lattice.walls])
 
-        self.coalescence_array = -1*np.ones(num_record_steps + 1, dtype=np.double)
-        self.annihilation_array = -1*np.ones(num_record_steps + 1, dtype=np.double)
-        self.num_walls_array = -1*np.ones(num_record_steps + 1, dtype=np.long)
+        self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
+        self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
+        self.num_walls_array = -1*np.ones(num_record_steps, dtype=np.long)
 
         self.coalescence_array[0] = 0
         self.annihilation_array[0] = 0
