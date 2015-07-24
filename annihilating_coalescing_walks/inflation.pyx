@@ -137,7 +137,7 @@ cdef class Lattice:
                 previous_wall_type = new_wall_type
             elif count == num_walls - 1:
                 new_wall_type = np.random.randint(self.num_types)
-                while new_wall_type == previous_wall_type: # The wall has to be different...
+                while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
                     new_wall_type = np.random.randint(self.num_types)
                 # Set the wall type of the first wall to the right of this one.
                 wall_list[0].wall_type[LEFT] = new_wall_type  #TODO: The problem is that this wall might be the same as its right...gotta find a better way.
