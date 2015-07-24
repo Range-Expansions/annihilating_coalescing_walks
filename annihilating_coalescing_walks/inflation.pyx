@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=True
+#cython: boundscheck=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
