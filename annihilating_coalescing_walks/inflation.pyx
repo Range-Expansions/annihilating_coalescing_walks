@@ -106,7 +106,7 @@ cdef class Lattice:
         self.lattice = self.lattice_ic.copy()
         self.walls = self.get_walls()
 
-    cdef Wall[:] get_walls(Lattice self):
+    cdef Wall[:] get_walls(Lattice self): #TODO: If you input an IC, alternative code should be run!
         """Only to be used when initializing. If used again, terrible, terrible things will happen. This is a hacky
         way to take the IC off lattice in the inflation case, as if a spacing of 1 is used between points
         (the on lattice IC) strange things will happen. Kind of hackey but that's ok."""
@@ -140,7 +140,7 @@ cdef class Lattice:
                 while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
                     new_wall_type = np.random.randint(self.num_types)
                 # Set the wall type of the first wall to the right of this one.
-                wall_list[0].wall_type[LEFT] = new_wall_type  #TODO: The problem is that this wall might be the same as its right...gotta find a better way.
+                wall_list[0].wall_type[LEFT] = new_wall_type
                 wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
                 new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
                 wall_list.append(new_wall)
