@@ -307,13 +307,14 @@ cdef class Inflation_Lattice_Simulation:
 
         public double radius
         public double velocity
+        public double jump_length
         public double lattice_spacing_output
         public double[:] output_bins_space
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01, double lattice_spacing_output=0.5,
-                 bool record_wall_position=False,
+                 bool record_wall_position=False, double jump_length=1.0,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -337,6 +338,7 @@ cdef class Inflation_Lattice_Simulation:
 
         self.radius = radius
         self.velocity = velocity
+        self.jump_length = jump_length
 
         self.lattice_spacing_output = lattice_spacing_output
         self.output_bins_space = None
@@ -441,7 +443,7 @@ cdef class Inflation_Lattice_Simulation:
                     adjusted_right_neighbor_position += self.lattice.lattice_size
                 distance_between_walls = adjusted_right_neighbor_position - current_wall.position
 
-                distance_moved = 1./self.radius
+                distance_moved = self.jump_length/self.radius
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
@@ -462,7 +464,7 @@ cdef class Inflation_Lattice_Simulation:
                     adjusted_left_neighbor_position -= self.lattice.lattice_size
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
 
-                distance_moved = 1./self.radius
+                distance_moved = self.jump_length/self.radius
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
