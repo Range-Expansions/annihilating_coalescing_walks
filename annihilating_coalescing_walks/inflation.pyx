@@ -113,7 +113,7 @@ cdef class Lattice:
         right_shift = np.roll(self.lattice, 1)
         wall_locations = self.lattice != right_shift
         # Only use this to get the number of walls. Scatter the walls randomly in the interval [0, lattice_size)
-        num_walls = len(wall_locations)
+        num_walls = np.sum(wall_locations)
         # Draw num_wall positions
         wall_positions = np.random.rand(num_walls)*self.lattice_size
         # Create walls

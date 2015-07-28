@@ -18,9 +18,9 @@ def get_log_record_times(max_order, number_per_interval=100):
             rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves)
             return np.hstack((first_two_orders, rest_of_orders))
 
-def get_simulation_df(sim, max_time_power = 8):
-
-    sim.run(10**max_time_power)
+def get_simulation_df(sim, max_time_power = 8, run_sim=True):
+    if run_sim:
+        sim.run(10**max_time_power)
 
     # Let's make a pandas array of the results. It will be too annoying otherwise.
     wall_array = np.asarray(sim.num_walls_array)
