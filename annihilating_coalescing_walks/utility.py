@@ -45,11 +45,9 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
         sim.reset(new_seed)
     return df_list
 
-def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False):
+def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_power=3):
 
     debug=False
-
-    s=0.0
 
     lattice_size = 10**4
     num_types = num_colors
@@ -57,7 +55,6 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False):
     record_wall_position = False
     lattice_spacing_output = 1.0
 
-    max_power=3
     #record_every=10.
 
     record_time_array = get_log_record_times(max_power).astype(np.double)
@@ -72,13 +69,15 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False):
     velocity=1.19
     jump_length=790.
 
+
+    # Selective disadvantage for one of them...strain 1, like in the experiments
     for i in range(num_types):
         for j in range(num_types):
             if i != j:
                 if i == 1:
-                    delta_prob_dict[i, j] = s
-                elif j == 1:
                     delta_prob_dict[i, j] = -s
+                elif j == 1:
+                    delta_prob_dict[i, j] = s
                 else:
                     delta_prob_dict[i, j] = 0
 
