@@ -45,7 +45,11 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
         sim.reset(new_seed)
     return df_list
 
-def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_power=3):
+INITIAL_RADIUS = 1.93
+VELOCITY = 1.19
+JUMP_LENGTH = 790
+
+def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_power=2, record_every=None):
 
     debug=False
 
@@ -57,7 +61,9 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_powe
 
     #record_every=10.
 
-    record_time_array = get_log_record_times(max_power).astype(np.double)
+    record_time_array = None
+    if record_every is None:
+        record_time_array = get_log_record_times(max_power).astype(np.double)
 
     # 1 will have the selective advantage, like our experiments
     delta_prob_dict = {}
@@ -65,9 +71,9 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_powe
     ##########################################################
     ##### These parameters should be checked & fine tuned! ###
     ##########################################################
-    radius=1.93
-    velocity=1.19
-    jump_length=790.
+    radius = INITIAL_RADIUS
+    velocity= VELOCITY
+    jump_length= JUMP_LENGTH
 
 
     # Selective disadvantage for one of them...strain 1, like in the experiments
@@ -81,19 +87,33 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_powe
                 else:
                     delta_prob_dict[i, j] = 0
 
-    sim = acwi.Selection_Inflation_Lattice_Simulation(
-        delta_prob_dict,
-        lattice_size = lattice_size,
-        num_types = num_types,
-        seed=seed,
-        record_lattice=record_lattice,
-        record_time_array=record_time_array,
-        velocity=velocity,
-        radius=radius,
-        jump_length=jump_length,
-        record_wall_position=record_wall_position,
-        lattice_spacing_output=lattice_spacing_output,
-        debug=debug)
-
+    if record_every is None:
+        sim = acwi.Selection_Inflation_Lattice_Simulation(
+            delta_prob_dict,
+            lattice_size = lattice_size,
+            num_types = num_types,
+            seed=seed,
+            record_lattice=record_lattice,
+            record_time_array=record_time_array,
+            velocity=velocity,
+            radius=radius,
+            jump_length=jump_length,
+            record_wall_position=record_wall_position,
+            lattice_spacing_output=lattice_spacing_output,
+            debug=debug)
+    else:
+        sim = acwi.Selection_Inflation_Lattice_Simulation(
+            delta_prob_dict,
+            lattice_size = lattice_size,
+            num_types = num_types,
+            seed=seed,
+            record_lattice=record_lattice,
+            record_every=record_every,
+            velocity=velocity,
+            radius=radius,
+            jump_length=jump_length,
+            record_wall_position=record_wall_position,
+            lattice_spacing_output=lattice_spacing_output,
+            debug=debug)
 
     return sim
