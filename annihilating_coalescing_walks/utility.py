@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import annihilating_coalescing_walks as acw
+import annihilating_coalescing_walks.inflation as acwi
 
 def get_log_record_times(max_order, number_per_interval=100):
     if number_per_interval > 200:
@@ -44,3 +44,57 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
         new_seed = np.random.randint(0, 2**32 - 1)
         sim.reset(new_seed)
     return df_list
+
+def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False):
+
+    debug=False
+
+    s=0.0
+
+    lattice_size = 10**4
+    num_types = num_colors
+    seed = np.random.randint(0, 2**32)
+    record_wall_position = False
+    lattice_spacing_output = 1.0
+
+    max_power=3
+    #record_every=10.
+
+    record_time_array = get_log_record_times(max_power).astype(np.double)
+
+    # 1 will have the selective advantage, like our experiments
+    delta_prob_dict = {}
+
+    ##########################################################
+    ##### These parameters should be checked & fine tuned! ###
+    ##########################################################
+    radius=1.93
+    velocity=1.19
+    jump_length=790.
+
+    for i in range(num_types):
+        for j in range(num_types):
+            if i != j:
+                if i == 1:
+                    delta_prob_dict[i, j] = s
+                elif j == 1:
+                    delta_prob_dict[i, j] = -s
+                else:
+                    delta_prob_dict[i, j] = 0
+
+    sim = acwi.Selection_Inflation_Lattice_Simulation(
+        delta_prob_dict,
+        lattice_size = lattice_size,
+        num_types = num_types,
+        seed=seed,
+        record_lattice=record_lattice,
+        record_time_array=record_time_array,
+        velocity=velocity,
+        radius=radius,
+        jump_length=jump_length,
+        record_wall_position=record_wall_position,
+        lattice_spacing_output=lattice_spacing_output,
+        debug=debug)
+
+
+    return sim
