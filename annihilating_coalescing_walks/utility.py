@@ -51,7 +51,7 @@ VELOCITY = 1.19
 JUMP_LENGTH = .35
 #LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
 
-def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=False, lattice_spacing_output=2*np.pi/180.,
+def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=False, lattice_spacing_output=2*np.pi/500.,
                                max_power=1, record_every=None, verbose=False):
 
     debug=False
