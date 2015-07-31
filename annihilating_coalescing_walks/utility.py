@@ -50,9 +50,10 @@ INITIAL_RADIUS = 3.50
 VELOCITY = 1.19
 JUMP_LENGTH = .35
 #LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
+SUPERDIFFUSIVE_JUMP_LENGTH = 0.1
 
 def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=False, lattice_spacing_output=2*np.pi/500.,
-                               max_power=1, record_every=None, verbose=False):
+                               max_power=1, record_every=None, verbose=False, superdiffusive=False):
 
     debug=False
 
@@ -74,8 +75,10 @@ def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=F
     ##########################################################
     radius = INITIAL_RADIUS
     velocity= VELOCITY
-    jump_length= JUMP_LENGTH
-
+    if not superdiffusive:
+        jump_length= JUMP_LENGTH
+    else:
+        jump_length = SUPERDIFFUSIVE_JUMP_LENGTH
 
     # Selective disadvantage for one of them...strain 1, like in the experiments
     for i in range(num_types):
@@ -102,7 +105,7 @@ def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=F
             record_wall_position=record_wall_position,
             lattice_spacing_output=lattice_spacing_output,
             debug=debug,
-            verbose=verbose)
+            verbose=verbose, superdiffusive=superdiffusive)
     else:
         sim = acwi.Selection_Inflation_Lattice_Simulation(
             delta_prob_dict,
@@ -117,6 +120,6 @@ def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=F
             record_wall_position=record_wall_position,
             lattice_spacing_output=lattice_spacing_output,
             debug=debug,
-            verbose=verbose)
+            verbose=verbose, superdiffusive=superdiffusive)
 
     return sim
