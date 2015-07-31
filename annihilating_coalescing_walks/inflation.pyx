@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -315,8 +315,9 @@ cdef class Inflation_Lattice_Simulation:
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01, double lattice_spacing_output=0.5,
-                 bool record_wall_position=False, double jump_length=1.0,
+                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
+                 double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
+                 double jump_length=1.0,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -380,7 +381,7 @@ cdef class Inflation_Lattice_Simulation:
             # Actually append to the time array...say that we are recording at time 0.
             self.time_array = np.insert(self.time_array, 0, 0.0)
 
-        self.output_bins_space = np.arange(0, self.lattice.lattice_size + self.lattice_spacing_output, self.lattice_spacing_output)
+        self.output_bins_space = np.arange(0, ANGULAR_SIZE + self.lattice_spacing_output, self.lattice_spacing_output)
         if self.record_lattice:
             self.lattice_history = -1*np.ones((num_record_steps, self.output_bins_space.shape[0]), dtype=np.long)
             self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
@@ -524,31 +525,32 @@ cdef class Inflation_Lattice_Simulation:
                             self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             else: # Record at given times
-                if cur_time >= self.record_time_array[num_recorded - 1]: # Need the minus 1, as the zero is always recorded
+                if num_recorded - 1 < self.record_time_array.shape[0]:
+                    if cur_time >= self.record_time_array[num_recorded - 1]: # Need the minus 1, as the zero is always recorded
 
-                    # Create lattice
-                    if self.record_lattice:
-                        self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
+                        # Create lattice
+                        if self.record_lattice:
+                            self.lattice_history[num_recorded, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
 
-                    # Count annihilations & coalescences
-                    self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
-                    self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
-                    annihilation_count_per_time = 0
-                    coalescence_count_per_time = 0
+                        # Count annihilations & coalescences
+                        self.annihilation_array[num_recorded] = annihilation_count_per_time/time_remainder
+                        self.coalescence_array[num_recorded] = coalescence_count_per_time/time_remainder
+                        annihilation_count_per_time = 0
+                        coalescence_count_per_time = 0
 
-                    # Count the number of walls
-                    self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
+                        # Count the number of walls
+                        self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
 
-                    # Increment the number recorded
-                    num_recorded += 1
+                        # Increment the number recorded
+                        num_recorded += 1
 
-                    time_remainder = 0 # time-remainder acts as the delta t in this case.
+                        time_remainder = 0 # time-remainder acts as the delta t in this case.
 
-                    # Record wall positions
+                        # Record wall positions
 
-                    if self.record_wall_position:
-                        if self.lattice.walls.shape[0] != 0:
-                            self.wall_position_history.append([z.position for z in self.lattice.walls])
+                        if self.record_wall_position:
+                            if self.lattice.walls.shape[0] != 0:
+                                self.wall_position_history.append([z.position for z in self.lattice.walls])
 
             # Refresh for the next time interval
             step_count += 1

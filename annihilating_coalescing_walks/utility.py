@@ -48,14 +48,14 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
 # These are the parameters when the random walk approximation begins to hold
 INITIAL_RADIUS = 3.50
 VELOCITY = 1.19
-JUMP_LENGTH = 790
-LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
+JUMP_LENGTH = .35
+#LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
 
-def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, lattice_spacing_output=.1, max_power=1, record_every=None):
+def get_sim_experimental_match(num_colors, lattice_size, s=0.0, record_lattice=False, lattice_spacing_output=2*np.pi/180.,
+                               max_power=1, record_every=None, verbose=False):
 
     debug=False
 
-    lattice_size = LATTICE_SIZE(num_colors)
     num_types = num_colors
     seed = np.random.randint(0, 2**32)
     record_wall_position = False
@@ -101,7 +101,8 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, lattice_
             jump_length=jump_length,
             record_wall_position=record_wall_position,
             lattice_spacing_output=lattice_spacing_output,
-            debug=debug)
+            debug=debug,
+            verbose=verbose)
     else:
         sim = acwi.Selection_Inflation_Lattice_Simulation(
             delta_prob_dict,
@@ -115,6 +116,7 @@ def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, lattice_
             jump_length=jump_length,
             record_wall_position=record_wall_position,
             lattice_spacing_output=lattice_spacing_output,
-            debug=debug)
+            debug=debug,
+            verbose=verbose)
 
     return sim
