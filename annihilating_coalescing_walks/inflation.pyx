@@ -312,12 +312,13 @@ cdef class Inflation_Lattice_Simulation:
         public double jump_length
         public double lattice_spacing_output
         public double[:] output_bins_space
+        public bool superdiffusive
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
-                 double jump_length=1.0,
+                 double jump_length=1.0, bool superdiffusive=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -342,6 +343,7 @@ cdef class Inflation_Lattice_Simulation:
         self.radius = radius
         self.velocity = velocity
         self.jump_length = jump_length
+        self.superdiffusive = superdiffusive
 
         self.lattice_spacing_output = lattice_spacing_output
         self.output_bins_space = None
@@ -415,6 +417,8 @@ cdef class Inflation_Lattice_Simulation:
             long left_wall_index
             double distance_moved
             double initial_radius = self.radius
+            double random_num
+            double p_of_x
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
             #### Debug ####
@@ -430,8 +434,16 @@ cdef class Inflation_Lattice_Simulation:
             # Determine time increment before deletion of walls
             delta_t = 1./self.lattice.walls.shape[0]
 
-            #### Choose a jump direction ####
+            #### Determine how far you move ####
+            if not self.superdiffusive:
+                distance_moved = self.jump_length/self.radius
+            else:
+                # Draw from the superdiffusive distribution and move
+                random_num = gsl_rng_uniform(r)
+                p_of_x = (1-random_num)**(-2./3.)
+                distance_moved = self.jump_length * p_of_x / self.radius
 
+            #### Choose a jump direction ####
             jump_direction = current_wall.get_jump_direction(r)
             if self.debug:
                 if jump_direction is LEFT:
@@ -444,8 +456,6 @@ cdef class Inflation_Lattice_Simulation:
                 if adjusted_right_neighbor_position < current_wall.position: # There is a wrap around:
                     adjusted_right_neighbor_position += self.lattice.lattice_size
                 distance_between_walls = adjusted_right_neighbor_position - current_wall.position
-
-                distance_moved = self.jump_length/self.radius
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
@@ -465,8 +475,6 @@ cdef class Inflation_Lattice_Simulation:
                 if adjusted_left_neighbor_position > current_wall.position: # There is a wrap around:
                     adjusted_left_neighbor_position -= self.lattice.lattice_size
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
-
-                distance_moved = self.jump_length/self.radius
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
