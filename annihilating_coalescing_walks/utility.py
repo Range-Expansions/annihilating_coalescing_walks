@@ -45,19 +45,20 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
         sim.reset(new_seed)
     return df_list
 
-INITIAL_RADIUS = 1.93
+# These are the parameters when the random walk approximation begins to hold
+INITIAL_RADIUS = 3.50
 VELOCITY = 1.19
 JUMP_LENGTH = 790
+LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
 
-def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, max_power=2, record_every=None):
+def get_sim_experimental_match(num_colors, s=0.0, record_lattice=False, lattice_spacing_output=.1, max_power=1, record_every=None):
 
     debug=False
 
-    lattice_size = 10**4
+    lattice_size = LATTICE_SIZE(num_colors)
     num_types = num_colors
     seed = np.random.randint(0, 2**32)
     record_wall_position = False
-    lattice_spacing_output = 1.0
 
     #record_every=10.
 
