@@ -80,6 +80,8 @@ cdef class Selection_Wall(Wall):
         else:
             return LEFT
 
+cdef double ANGULAR_SIZE = 2*np.pi
+
 cdef class Lattice:
 
     cdef:
@@ -87,8 +89,8 @@ cdef class Lattice:
         public long[:] lattice_ic
         public long[:] lattice
         public Wall[:] walls
-        int num_types
-        bool debug
+        public int num_types
+        public bool debug
 
     def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None):
         self.lattice_size = lattice_size
@@ -115,7 +117,7 @@ cdef class Lattice:
         # Only use this to get the number of walls. Scatter the walls randomly in the interval [0, lattice_size)
         num_walls = np.sum(wall_locations)
         # Draw num_wall positions
-        wall_positions = np.random.rand(num_walls)*self.lattice_size
+        wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
         # Create walls
         wall_list = []
 
@@ -361,7 +363,6 @@ cdef class Inflation_Lattice_Simulation:
         self.annihilation_array = None
         self.num_walls_array = None
 
-
     def run(Inflation_Lattice_Simulation self, double max_time):
         '''This should only be run once! Weird things will happen otherwise as the seed will be weird.'''
         # Initialize the random number generator
@@ -452,8 +453,8 @@ cdef class Inflation_Lattice_Simulation:
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
                 else: # Deal with wrapping
                     current_wall.position += distance_moved
-                    if current_wall.position > self.lattice.lattice_size:
-                        current_wall.position -= self.lattice.lattice_size
+                    if current_wall.position > ANGULAR_SIZE:
+                        current_wall.position -= ANGULAR_SIZE
                         self.lattice.walls = np.roll(self.lattice.walls, 1)
                         current_wall_index = 0
 
@@ -475,7 +476,7 @@ cdef class Inflation_Lattice_Simulation:
                 else: # Deal with wrapping
                     current_wall.position -= distance_moved
                     if current_wall.position < 0:
-                        current_wall.position += self.lattice.lattice_size
+                        current_wall.position += ANGULAR_SIZE
                         self.lattice.walls = np.roll(self.lattice.walls, -1)
                         current_wall_index = self.lattice.walls.shape[0] - 1
 
