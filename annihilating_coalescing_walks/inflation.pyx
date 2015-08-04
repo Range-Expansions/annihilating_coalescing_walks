@@ -461,6 +461,7 @@ cdef class Inflation_Lattice_Simulation:
                     if self.debug:
                         print 'Jump Right Collision!'
                     current_wall.position = right_neighbor.position
+                    # TODO: DETERMINE IF THIS IS A WRAPAROUND!!!
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
                 else: # Deal with wrapping
                     current_wall.position += distance_moved
@@ -481,6 +482,7 @@ cdef class Inflation_Lattice_Simulation:
                         print 'Jump Left Collision!'
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     # Left neighbor position is where the collision should happen.
+                    # TODO: Check if this is a wraparound collision!
                     collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
                 else: # Deal with wrapping
                     current_wall.position -= distance_moved
