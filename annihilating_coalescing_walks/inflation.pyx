@@ -454,7 +454,7 @@ cdef class Inflation_Lattice_Simulation:
                 right_neighbor = current_wall.wall_neighbors[RIGHT]
                 adjusted_right_neighbor_position = right_neighbor.position
                 if adjusted_right_neighbor_position < current_wall.position: # There is a wrap around:
-                    adjusted_right_neighbor_position += self.lattice.lattice_size
+                    adjusted_right_neighbor_position += ANGULAR_SIZE
                 distance_between_walls = adjusted_right_neighbor_position - current_wall.position
 
                 if distance_between_walls <= distance_moved: #Collision!'
@@ -473,7 +473,7 @@ cdef class Inflation_Lattice_Simulation:
                 left_neighbor = current_wall.wall_neighbors[LEFT]
                 adjusted_left_neighbor_position = left_neighbor.position
                 if adjusted_left_neighbor_position > current_wall.position: # There is a wrap around:
-                    adjusted_left_neighbor_position -= self.lattice.lattice_size
+                    adjusted_left_neighbor_position -= ANGULAR_SIZE
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
 
                 if distance_between_walls <= distance_moved: #Collision!'
