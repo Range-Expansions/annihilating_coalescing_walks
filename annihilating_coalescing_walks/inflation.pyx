@@ -26,7 +26,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
     else:
         return num1 % num2
 
-cdef class Wall:
+cdef class Wall(object):
 
     cdef:
         public double position
@@ -82,7 +82,7 @@ cdef class Selection_Wall(Wall):
 
 cdef double ANGULAR_SIZE = 2*np.pi
 
-cdef class Lattice:
+cdef class Lattice(object):
 
     cdef:
         public long lattice_size
@@ -285,7 +285,7 @@ cdef class Selection_Lattice(Lattice):
         '''What is returned when a new wall is created via coalescence.'''
         return Selection_Wall(new_position, wall_type=wall_type, delta_prob_dict=self.delta_prob_dict, wall_neighbors=wall_neighbors)
 
-cdef class Inflation_Lattice_Simulation:
+cdef class Inflation_Lattice_Simulation(object):
 
     cdef:
         public double record_every
@@ -629,6 +629,13 @@ cdef class Inflation_Lattice_Simulation:
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
+    #def __del__(self): # In hopes of fixing the memory leak...
+    #    del self.time_array
+    #    del self.lattice_history[:, :]
+    #    del self.annihilation_array[:]
+    #    del self.coalescence_array[:]
+    #    del self.num_walls_array[:]
+
 cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
 
     cdef:
@@ -642,3 +649,7 @@ cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
     def initialize_lattice(Selection_Inflation_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
         return Selection_Lattice(self.delta_prob_dict, debug=self.debug, **kwargs)
+
+    #def __del__(self):
+    #    super(self).__dealloc__()
+    #    del self.delta_prob_dict

@@ -7,12 +7,12 @@ import numpy as np
 extensions = [
     Extension("annihilating_coalescing_walks.linear",
               sources=["annihilating_coalescing_walks/linear.pyx"],
-              language="c++", libraries = cython_gsl.get_libraries(),
+              language="c", libraries = cython_gsl.get_libraries(),
               library_dirs = [cython_gsl.get_library_dir()],
               include_dirs = [cython_gsl.get_cython_include_dir(), np.get_include()]),
     Extension("annihilating_coalescing_walks.inflation",
               sources=["annihilating_coalescing_walks/inflation.pyx"],
-              language="c++", libraries = cython_gsl.get_libraries(),
+              language="c", libraries = cython_gsl.get_libraries(),
               library_dirs = [cython_gsl.get_library_dir()],
               include_dirs = [cython_gsl.get_cython_include_dir(), np.get_include()])
 ]
