@@ -226,6 +226,9 @@ cdef class Lattice(object):
         cdef Wall wall_after, wall_before
         cdef long before_index, after_index
         cdef long[:] to_delete
+        cdef int cur_index
+        cdef Wall cur_wall
+        cdef bool[:] mask
 
         if new_wall is not None: # Coalesce
             if self.debug:
@@ -245,7 +248,13 @@ cdef class Lattice(object):
             wall_after.wall_neighbors[0] = new_wall
 
             # Delete the undesired wall #TODO: Is this the problem with memory leakage?
-            self.walls = np.delete(self.walls, c_pos_mod(left_wall_index + 1, self.walls.shape[0]))
+            to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
+
+            for cur_index in to_delete:
+                cur_wall = self.walls[cur_index]
+                del cur_wall
+            self.walls = np.delete(self.walls, to_delete)
+
             return COALESCE
         else: #Annihilate
             if self.debug:
@@ -264,7 +273,12 @@ cdef class Lattice(object):
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
+
+            for cur_index in to_delete:
+                cur_wall = self.walls[cur_index]
+                del cur_wall
             self.walls = np.delete(self.walls, to_delete)
+
             return ANNIHILATE
 
     cdef get_new_wall(self, double new_position, wall_type=None, wall_neighbors=None):
