@@ -244,7 +244,7 @@ cdef class Lattice(object):
             new_wall.wall_neighbors = np.array([wall_before, wall_after])
             wall_after.wall_neighbors[0] = new_wall
 
-            # Delete the undesired wall
+            # Delete the undesired wall #TODO: Is this the problem with memory leakage?
             self.walls = np.delete(self.walls, c_pos_mod(left_wall_index + 1, self.walls.shape[0]))
             return COALESCE
         else: #Annihilate
