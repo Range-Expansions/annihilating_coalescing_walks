@@ -420,6 +420,8 @@ cdef class Inflation_Lattice_Simulation:
             double random_num
             double p_of_x
 
+            bool wrap_around_event = False
+
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
             #### Debug ####
             if self.debug:
@@ -444,6 +446,8 @@ cdef class Inflation_Lattice_Simulation:
                 distance_moved = self.jump_length * p_of_x / self.radius
 
             #### Choose a jump direction ####
+            wrap_around_event = False
+
             jump_direction = current_wall.get_jump_direction(r)
             if self.debug:
                 if jump_direction is LEFT:
@@ -455,11 +459,17 @@ cdef class Inflation_Lattice_Simulation:
                 adjusted_right_neighbor_position = right_neighbor.position
                 if adjusted_right_neighbor_position < current_wall.position: # There is a wrap around:
                     adjusted_right_neighbor_position += ANGULAR_SIZE
+                    wrap_around_event = True
                 distance_between_walls = adjusted_right_neighbor_position - current_wall.position
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
                         print 'Jump Right Collision!'
+
+                    if wrap_around_event:
+                        self.lattice.walls = np.roll(self.lattice.walls, 1)
+                        current_wall_index = 0
+
                     current_wall.position = right_neighbor.position
                     # TODO: DETERMINE IF THIS IS A WRAPAROUND!!!
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
@@ -475,11 +485,16 @@ cdef class Inflation_Lattice_Simulation:
                 adjusted_left_neighbor_position = left_neighbor.position
                 if adjusted_left_neighbor_position > current_wall.position: # There is a wrap around:
                     adjusted_left_neighbor_position -= ANGULAR_SIZE
+                    wrap_around_event = True
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
 
                 if distance_between_walls <= distance_moved: #Collision!'
                     if self.debug:
                         print 'Jump Left Collision!'
+                    if wrap_around_event:
+                        self.lattice.walls = np.roll(self.lattice.walls, -1)
+                        current_wall_index = self.lattice.walls.shape[0] - 1
+
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     # Left neighbor position is where the collision should happen.
                     # TODO: Check if this is a wraparound collision!
