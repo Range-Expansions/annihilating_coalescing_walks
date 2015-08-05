@@ -629,13 +629,6 @@ cdef class Inflation_Lattice_Simulation(object):
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
 
-    #def __del__(self): # In hopes of fixing the memory leak...
-    #    del self.time_array
-    #    del self.lattice_history[:, :]
-    #    del self.annihilation_array[:]
-    #    del self.coalescence_array[:]
-    #    del self.num_walls_array[:]
-
 cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
 
     cdef:
@@ -649,7 +642,3 @@ cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
     def initialize_lattice(Selection_Inflation_Lattice_Simulation self, **kwargs):
         '''Necessary for subclassing.'''
         return Selection_Lattice(self.delta_prob_dict, debug=self.debug, **kwargs)
-
-    #def __del__(self):
-    #    super(self).__dealloc__()
-    #    del self.delta_prob_dict
