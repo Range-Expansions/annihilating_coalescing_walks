@@ -32,7 +32,7 @@ cdef class Wall(object):
 
     cdef:
         public double position
-        public  object[:] wall_neighbors
+        public  Wall *wall_neighbors
         public long[:] wall_type
         object __weakref__
 
