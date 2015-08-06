@@ -56,10 +56,10 @@ cdef class Wall(object):
         else:
             return LEFT
 
-    cdef void destroy(self):
-        self.wall_neighbors = None # This is the most important to avoid circular references...
-        self.position = None
-        self.wall_type = None
+    cdef void destroy_neighbors(self):
+        """Necessary to avoid circular references..."""
+        self.wall_neighbors = None
+
 
 
 cdef class Selection_Wall(Wall):
@@ -246,15 +246,22 @@ cdef class Lattice(object):
             wall_after = self.walls[after_index]
             wall_before = self.walls[before_index]
 
-            wall_before.wall_neighbors[1] = new_wall
-            new_wall.wall_neighbors = np.array([wall_before, wall_after])
-            wall_after.wall_neighbors[0] = new_wall
+            # Clear neighbors and then recreate them.
+            wall_after.destroy_neighbors()
+            wall_before.destroy_neighbors()
 
-            # Delete the undesired wall #TODO: Is this the problem with memory leakage?
+            before_before_wall = self.walls[c_pos_mod(before_index -1, self.walls.shape[0])]
+            after_after_wall = self.walls[c_pos_mod(after_index + 1, self.walls.shape[0])]
+
+            wall_before.wall_neighbors = np.array([before_before_wall ,new_wall])
+            new_wall.wall_neighbors = np.array([wall_before, wall_after])
+            wall_after.wall_neighbors = np.array([new_wall, after_after_wall])
+
+            # Delete the undesired wall
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
-                cur_wall.destroy()
+                cur_wall.destroy_neighbors()
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -271,14 +278,21 @@ cdef class Lattice(object):
             wall_before = self.walls[c_pos_mod(before_index, self.walls.shape[0])]
             wall_after = self.walls[c_pos_mod(after_index, self.walls.shape[0])]
 
-            wall_before.wall_neighbors[1] = wall_after
-            wall_after.wall_neighbors[0] = wall_before
+            before_before_wall = self.walls[c_pos_mod(before_index -1, self.walls.shape[0])]
+            after_after_wall = self.walls[c_pos_mod(after_index + 1, self.walls.shape[0])]
+
+            # Clear neighbors and then recreate
+            wall_before.destroy_neighbors()
+            wall_after.destroy_neighbors()
+
+            wall_before.wall_neighbors = np.array([before_before_wall, wall_after])
+            wall_after.wall_neighbors = np.array([wall_before, after_after_wall])
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
-                cur_wall.destroy()
+                cur_wall.destroy_neighbors()
 
             self.walls = np.delete(self.walls, to_delete)
 
