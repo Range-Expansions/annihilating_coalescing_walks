@@ -177,7 +177,6 @@ cdef class Lattice(object):
             print 'Debugging initial wall condition...'
             # The wall positions can be debugged elsewhere...check neighbors.
 
-
         return wall_list
 
     cpdef long[:] get_lattice_from_walls(Lattice self, double[:] output_bins_space):
@@ -650,6 +649,12 @@ cdef class Inflation_Lattice_Simulation(object):
 
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
+
+        # Remove walls manually or deal with circular references again
+        cdef Wall cur_wall
+        for cur_wall in self.lattice.walls:
+            cur_wall.destroy_neighbors()
+
 
 cdef class Selection_Inflation_Lattice_Simulation(Inflation_Lattice_Simulation):
 
