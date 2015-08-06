@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=True
+#cython: boundscheck=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -12,7 +12,6 @@ import numpy as np
 cimport numpy as np
 from cython_gsl cimport *
 from cpython cimport bool
-import sys
 
 cdef unsigned int LEFT = 0
 cdef unsigned int RIGHT = 1
