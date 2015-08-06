@@ -21,7 +21,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-import gc
+import weakref
 
 cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
@@ -35,6 +35,7 @@ cdef class Wall(object):
         public double position
         public  Wall[:] wall_neighbors
         public long[:] wall_type
+        object __weakref__
 
     def __init__(Wall self, double position, Wall[:] wall_neighbors = None, long[:] wall_type = None):
         self.position = position
@@ -88,7 +89,7 @@ cdef double ANGULAR_SIZE = 2*np.pi
 cdef class Lattice(object):
 
     cdef:
-        public long lattice_size
+        public long 2lattice_size
         public long[:] lattice_ic
         public long[:] lattice
         public Wall[:] walls
@@ -170,7 +171,7 @@ cdef class Lattice(object):
         for i in range(wall_list.shape[0]):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
-            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
+            wall_list[i].wall_neighbors = np.array([weakref.ref(left_wall), weakref.ref(right_wall)])
 
         if self.debug:
             print 'Debugging initial wall condition...'
