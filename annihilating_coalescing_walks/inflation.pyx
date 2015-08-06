@@ -260,8 +260,6 @@ cdef class Lattice(object):
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
                 cur_wall.destroy_neighbors()
-                print sys.getrefcount(cur_wall), ', Coalesce'
-            print
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -286,8 +284,6 @@ cdef class Lattice(object):
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
                 cur_wall.destroy_neighbors()
-                print sys.getrefcount(cur_wall), ', Annihilate'
-            print
 
             self.walls = np.delete(self.walls, to_delete)
 
