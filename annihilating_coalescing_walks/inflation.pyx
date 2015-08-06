@@ -20,7 +20,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-cimport weakref
+import weakref
 
 cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
@@ -66,7 +66,7 @@ cdef class Selection_Wall(Wall):
         public dict delta_prob_dict
 
     def __init__(Selection_Wall self, double position,
-                 Selection_Wall[:] wall_neighbors=None, long[:] wall_type = None,
+                 object[:] wall_neighbors=None, long[:] wall_type = None,
                  dict delta_prob_dict = None):
         '''delta_prob_dict dictates what change in probability you get based on your neighbor.'''
         Wall.__init__(self, position, wall_neighbors = wall_neighbors, wall_type = wall_type)
