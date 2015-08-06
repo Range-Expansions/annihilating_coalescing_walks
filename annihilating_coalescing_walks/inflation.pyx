@@ -33,11 +33,11 @@ cdef class Wall(object):
 
     cdef:
         public double position
-        public  Wall[:] wall_neighbors
+        public  object[:] wall_neighbors
         public long[:] wall_type
         object __weakref__
 
-    def __init__(Wall self, double position, Wall[:] wall_neighbors = None, long[:] wall_type = None):
+    def __init__(Wall self, double position, object[:] wall_neighbors = None, long[:] wall_type = None):
         self.position = position
         # Neighbors are neighboring walls! Left neighbor = 0, right neighbor = 1
         self.wall_neighbors = wall_neighbors
@@ -171,7 +171,7 @@ cdef class Lattice(object):
         for i in range(wall_list.shape[0]):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
-            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
+            wall_list[i].wall_neighbors = np.array([weakref.proxy(left_wall), weakref.proxy(right_wall)])
 
         if self.debug:
             print 'Debugging initial wall condition...'
@@ -211,7 +211,7 @@ cdef class Lattice(object):
             print 'No walls...I cannot determine lattice information from walls!'''
         return output_lattice
 
-    cdef unsigned int collide(Lattice self, Wall left_wall, Wall right_wall, long left_wall_index):
+    cdef unsigned int collide(Lattice self, object left_wall, object right_wall, long left_wall_index):
         '''Collides two walls. Make sure the wall that was on the left
         is passed first. The left wall current_wall_index gives the current current_wall_index of the left wall.'''
 
@@ -247,14 +247,13 @@ cdef class Lattice(object):
             wall_after = self.walls[after_index]
             wall_before = self.walls[before_index]
 
-            wall_before.wall_neighbors[1] = new_wall
-            new_wall.wall_neighbors = np.array([wall_before, wall_after])
-            wall_after.wall_neighbors[0] = new_wall
+            wall_before.wall_neighbors[1] = weakref.proxy(new_wall)
+            new_wall.wall_neighbors = np.array([weakref.proxy(wall_before), weakref.proxy(wall_after)])
+            wall_after.wall_neighbors[0] =weakref.proxy(new_wall)
 
             # Delete the undesired wall #TODO: Is this the problem with memory leakage?
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
-            wall_to_delete = self.walls[to_delete[0]]
-            print sys.getrefcount(wall_to_delete)
+            print sys.getrefcount(self.walls[to_delete[0]])
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -271,13 +270,12 @@ cdef class Lattice(object):
             wall_before = self.walls[c_pos_mod(before_index, self.walls.shape[0])]
             wall_after = self.walls[c_pos_mod(after_index, self.walls.shape[0])]
 
-            wall_before.wall_neighbors[1] = wall_after
-            wall_after.wall_neighbors[0] = wall_before
+            wall_before.wall_neighbors[1] = weakref.proxy(wall_after)
+            wall_after.wall_neighbors[0] = weakref.proxy(wall_before)
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
-            wall_to_delete = self.walls[to_delete[0]]
-            print sys.getrefcount(wall_to_delete)
+            print sys.getrefcount(self.walls[to_delete[0]])
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -429,7 +427,7 @@ cdef class Inflation_Lattice_Simulation(object):
             double delta_t
             unsigned int jump_direction
             unsigned int collision_type = NO_COLLISIONS
-            Wall left_neighbor, right_neighbor
+            object left_neighbor, right_neighbor
             long left_wall_index
             double distance_moved
             double initial_radius = self.radius
