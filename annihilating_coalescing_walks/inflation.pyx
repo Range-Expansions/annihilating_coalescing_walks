@@ -12,6 +12,7 @@ import numpy as np
 cimport numpy as np
 from cython_gsl cimport *
 from cpython cimport bool
+import sys
 
 cdef unsigned int LEFT = 0
 cdef unsigned int RIGHT = 1
@@ -19,6 +20,8 @@ cdef unsigned int RIGHT = 1
 cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
+
+import gc
 
 cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
@@ -249,10 +252,9 @@ cdef class Lattice(object):
 
             # Delete the undesired wall #TODO: Is this the problem with memory leakage?
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
+            wall_to_delete = self.walls[to_delete[0]]
+            print sys.getrefcount(wall_to_delete)
 
-            for cur_index in to_delete:
-                cur_wall = self.walls[cur_index]
-                del cur_wall
             self.walls = np.delete(self.walls, to_delete)
 
             return COALESCE
@@ -273,10 +275,9 @@ cdef class Lattice(object):
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
+            wall_to_delete = self.walls[to_delete[0]]
+            print sys.getrefcount(wall_to_delete)
 
-            for cur_index in to_delete:
-                cur_wall = self.walls[cur_index]
-                del cur_wall
             self.walls = np.delete(self.walls, to_delete)
 
             return ANNIHILATE
