@@ -12,6 +12,7 @@ import numpy as np
 cimport numpy as np
 from cython_gsl cimport *
 from cpython cimport bool
+import sys
 
 cdef unsigned int LEFT = 0
 cdef unsigned int RIGHT = 1
@@ -238,6 +239,8 @@ cdef class Lattice(object):
                 print 'Coalesce!'
                 print 'Left wall current_wall_index is' , left_wall_index
             # Redo neighbors first
+            cur_wall = self.walls[left_wall_index]
+            cur_wall.destroy_neighbors()
             self.walls[left_wall_index] = new_wall
 
             before_index = c_pos_mod(left_wall_index - 1, self.walls.shape[0])
@@ -247,18 +250,18 @@ cdef class Lattice(object):
             wall_before = self.walls[before_index]
 
             # Clear neighbors and then recreate them.
-            wall_after.destroy_neighbors()
-            wall_before.destroy_neighbors()
 
             wall_before.wall_neighbors[1] = new_wall
-            new_wall.wall_neighbors = np.array([wall_before, wall_after])
             wall_after.wall_neighbors[0]= new_wall
+            new_wall.wall_neighbors = np.array([wall_before, wall_after])
 
             # Delete the undesired wall
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
                 cur_wall.destroy_neighbors()
+                print sys.getrefcount(cur_wall), ', Coalesce'
+            print
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -283,6 +286,8 @@ cdef class Lattice(object):
             for cur_index in to_delete:
                 cur_wall = self.walls[cur_index]
                 cur_wall.destroy_neighbors()
+                print sys.getrefcount(cur_wall), ', Annihilate'
+            print
 
             self.walls = np.delete(self.walls, to_delete)
 
