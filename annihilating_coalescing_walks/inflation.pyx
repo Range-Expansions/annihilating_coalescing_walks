@@ -20,7 +20,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-import weakref
+cimport weakref
 
 cdef long c_pos_mod(long num1, long num2) nogil:
     if num1 < 0:
@@ -32,7 +32,7 @@ cdef class Wall(object):
 
     cdef:
         public double position
-        public  Wall *wall_neighbors
+        public  object[:] wall_neighbors
         public long[:] wall_type
         object __weakref__
 
