@@ -59,6 +59,12 @@ cdef class Wall(object):
         else:
             return LEFT
 
+    cdef void destroy(self):
+        self.wall_neighbors = None
+        self.position = None
+        self.wall_type = None
+
+
 cdef class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage.'''
 
