@@ -250,12 +250,9 @@ cdef class Lattice(object):
             wall_after.destroy_neighbors()
             wall_before.destroy_neighbors()
 
-            before_before_wall = self.walls[c_pos_mod(before_index -1, self.walls.shape[0])]
-            after_after_wall = self.walls[c_pos_mod(after_index + 1, self.walls.shape[0])]
-
-            wall_before.wall_neighbors = np.array([before_before_wall ,new_wall])
+            wall_before.wall_neighbors[1] = new_wall
             new_wall.wall_neighbors = np.array([wall_before, wall_after])
-            wall_after.wall_neighbors = np.array([new_wall, after_after_wall])
+            wall_after.wall_neighbors[0]= new_wall
 
             # Delete the undesired wall
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
@@ -278,15 +275,8 @@ cdef class Lattice(object):
             wall_before = self.walls[c_pos_mod(before_index, self.walls.shape[0])]
             wall_after = self.walls[c_pos_mod(after_index, self.walls.shape[0])]
 
-            before_before_wall = self.walls[c_pos_mod(before_index -1, self.walls.shape[0])]
-            after_after_wall = self.walls[c_pos_mod(after_index + 1, self.walls.shape[0])]
-
-            # Clear neighbors and then recreate
-            wall_before.destroy_neighbors()
-            wall_after.destroy_neighbors()
-
-            wall_before.wall_neighbors = np.array([before_before_wall, wall_after])
-            wall_after.wall_neighbors = np.array([wall_before, after_after_wall])
+            wall_before.wall_neighbors[1] =wall_after
+            wall_after.wall_neighbors[0] = wall_before
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
