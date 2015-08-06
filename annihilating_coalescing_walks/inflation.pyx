@@ -253,7 +253,6 @@ cdef class Lattice(object):
 
             # Delete the undesired wall #TODO: Is this the problem with memory leakage?
             to_delete = np.array([c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
-            print sys.getrefcount(self.walls[to_delete[0]])
 
             self.walls = np.delete(self.walls, to_delete)
 
@@ -275,7 +274,6 @@ cdef class Lattice(object):
 
             # Do the actual annihilation
             to_delete = np.array([left_wall_index, c_pos_mod(left_wall_index + 1, self.walls.shape[0])])
-            print sys.getrefcount(self.walls[to_delete[0]])
 
             self.walls = np.delete(self.walls, to_delete)
 
