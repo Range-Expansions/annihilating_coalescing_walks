@@ -89,7 +89,7 @@ cdef double ANGULAR_SIZE = 2*np.pi
 cdef class Lattice(object):
 
     cdef:
-        public long 2lattice_size
+        public long lattice_size
         public long[:] lattice_ic
         public long[:] lattice
         public Wall[:] walls
@@ -171,7 +171,7 @@ cdef class Lattice(object):
         for i in range(wall_list.shape[0]):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
-            wall_list[i].wall_neighbors = np.array([weakref.ref(left_wall), weakref.ref(right_wall)])
+            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
 
         if self.debug:
             print 'Debugging initial wall condition...'
