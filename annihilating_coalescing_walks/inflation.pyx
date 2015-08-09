@@ -120,6 +120,10 @@ cdef class Lattice(object):
         # Only use this to get the number of walls. Scatter the walls randomly in the interval [0, lattice_size)
         num_walls = np.sum(wall_locations)
         # Draw num_wall positions
+
+        # TODO: Make this more legit, you specify the initial number of walls now
+        num_walls = self.lattice_size
+
         wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
         # Create walls
         wall_list = []
