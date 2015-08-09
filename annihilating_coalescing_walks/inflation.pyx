@@ -98,12 +98,12 @@ cdef class Lattice(object):
     def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None):
         self.lattice_size = lattice_size
         self.num_types=num_types
-        if lattice is None:
-            self.lattice_ic = np.random.randint(0, num_types, lattice_size)
-            self.lattice = self.lattice_ic.copy()
-        else:
-            self.lattice_ic = lattice
-            self.lattice = self.lattice_ic.copy()
+        #if lattice is None:
+        #    self.lattice_ic = np.random.randint(0, num_types, lattice_size)
+        #    self.lattice = self.lattice_ic.copy()
+        #else:
+        #    self.lattice_ic = lattice
+        #    self.lattice = self.lattice_ic.copy()
         self.walls = self.get_walls()
         self.debug = debug
 
@@ -115,10 +115,10 @@ cdef class Lattice(object):
         """Only to be used when initializing. If used again, terrible, terrible things will happen. This is a hacky
         way to take the IC off lattice in the inflation case, as if a spacing of 1 is used between points
         (the on lattice IC) strange things will happen. Kind of hackey but that's ok."""
-        right_shift = np.roll(self.lattice, 1)
-        wall_locations = self.lattice != right_shift
+        #right_shift = np.roll(self.lattice, 1)
+        #wall_locations = self.lattice != right_shift
         # Only use this to get the number of walls. Scatter the walls randomly in the interval [0, lattice_size)
-        num_walls = np.sum(wall_locations)
+        #num_walls = np.sum(wall_locations)
         # Draw num_wall positions
 
         # TODO: Make this more legit, you specify the initial number of walls now
