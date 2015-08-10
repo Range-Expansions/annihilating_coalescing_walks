@@ -123,7 +123,6 @@ cdef class Lattice(object):
 
         # TODO: Make this more legit, you specify the initial number of walls now
         num_walls = self.lattice_size
-
         wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
         # Create walls
         wall_list = []
@@ -398,8 +397,8 @@ cdef class Inflation_Lattice_Simulation(object):
             # Actually append to the time array...say that we are recording at time 0.
             self.time_array = np.insert(self.time_array, 0, 0.0)
 
-        self.output_bins_space = np.arange(0, ANGULAR_SIZE + self.lattice_spacing_output, self.lattice_spacing_output)
         if self.record_lattice:
+            self.output_bins_space = np.arange(0, ANGULAR_SIZE + self.lattice_spacing_output, self.lattice_spacing_output)
             self.lattice_history = -1*np.ones((num_record_steps, self.output_bins_space.shape[0]), dtype=np.long)
             self.lattice_history[0, :] = self.lattice.get_lattice_from_walls(self.output_bins_space)
         if self.record_wall_position:
