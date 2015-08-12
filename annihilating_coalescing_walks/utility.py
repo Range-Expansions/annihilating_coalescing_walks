@@ -48,7 +48,7 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
 # These are the parameters when the random walk approximation begins to hold
 INITIAL_RADIUS = 3.50
 VELOCITY = 1.19
-JUMP_LENGTH = .35
+JUMP_LENGTH = .45
 #LATTICE_SIZE = lambda q: 22/(1.-1./float(q))
 SUPERDIFFUSIVE_JUMP_LENGTH = 0.1
 

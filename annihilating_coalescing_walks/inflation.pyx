@@ -191,7 +191,7 @@ cdef class Lattice(object):
         # Loop through the walls in terms of position
 
         cdef int i
-        cdef Wall cur_wall
+        cdef object cur_wall
 
         cdef int num_walls_passed = 0
         if num_walls > 1:
