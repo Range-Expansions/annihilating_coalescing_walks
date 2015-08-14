@@ -332,7 +332,7 @@ cdef class Inflation_Lattice_Simulation(object):
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
-                 double jump_length=1.0, bool superdiffusive=False,
+                 double jump_length=0.01, bool superdiffusive=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
