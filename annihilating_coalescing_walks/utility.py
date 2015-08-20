@@ -56,10 +56,12 @@ def get_domain_size_df(completed_sim):
 
     walls = np.asarray(completed_sim.wall_position_history)
     wall_types = np.asarray(completed_sim.wall_type_history)
-    for count, cur_walls in enumerate(walls):
+    count = 0
+    for cur_walls, cur_types in zip(walls, wall_types):
         cur_walls = np.array(cur_walls)
+        cur_types = np.array(cur_types)
         angular_distances.append(cur_walls[1:] - cur_walls[0:-1])
-        domain_types.append([wall_types[z][0] for z in range(1, len(wall_types))])
+        domain_types.append([cur_types[z][0] for z in range(1, len(cur_types))])
 
         if np.any(angular_distances[count] < 0):
             print 'Walls must not have been ordered correctly...'
@@ -70,6 +72,7 @@ def get_domain_size_df(completed_sim):
     # Now wrap the data in a DF
     df_list = []
     for cur_ang, cur_type, time_point in zip(angular_distances, domain_types, time_array):
+
         df_list.append(pd.DataFrame({'angular_distance': cur_ang,
                                      'time':time_point,
                                     'type': cur_type}))
