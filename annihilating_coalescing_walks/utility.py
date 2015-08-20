@@ -71,54 +71,42 @@ def get_domain_size_df(completed_sim):
 
     # Now wrap the data in a DF
     df_list = []
+    count = 0
     for cur_ang, cur_type, time_point in zip(angular_distances, domain_types, time_array):
-
         df_list.append(pd.DataFrame({'angular_distance': cur_ang,
                                      'time':time_point,
-                                    'type': cur_type}))
+                                     'time_index' : count,
+                                     'type': cur_type}))
+        count += 1
 
     df_combined = pd.concat(df_list)
 
     return df_combined
 
 
-def get_average_domain_size_ecdf(completed_sim, num_ecdf_points=360):
-
-    y_array = []
-    time_array = []
+def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
 
     x = np.linspace(0, 2*np.pi, num_ecdf_points)
+    # filter out the desired type
+    if type != 'all':
+        domain_size_df = domain_size_df.loc[domain_size_df['type'] == type, :]
 
-    walls = np.asarray(completed_sim.wall_position_history)
-    angular_distances = []
-    for count, cur_walls in enumerate(walls):
-        cur_walls = np.array(cur_walls)
-        angular_distances.append(cur_walls[1:] - cur_walls[0:-1])
+    # groupby time index
+    gb = domain_size_df.groupby('time_index')
 
-        if np.any(angular_distances[count] < 0):
-            print 'Walls must not have been ordered correctly...'
-            print count
+    cdf_list = []
+    time_index_list = []
+    time_list = []
+    for name, data in gb:
+        ecdf = sm.distributions.ECDF(data['angular_distance'].values)
+        cdf = ecdf(x)
+        cdf_list.append(cdf)
 
-    sim_y = []
-    for cur_angle in angular_distances:
-        ecdf = sm.distributions.ECDF(cur_angle)
-        y = ecdf(x)
-        sim_y.append(y)
-    y_array.append(sim_y)
+        time_index_list.append(name)
+        time_list.append(data['time'].iloc[0])
+    cdf_list = np.array(cdf_list)
 
-    times = np.asarray(completed_sim.time_array)
-    time_array.append(times)
-
-    # Now wrap the data in a DF
-    df_list = []
-    for y_at_time_point, time_point in zip(y_array, time_array):
-        df_list.append(pd.DataFrame({'angular_ecdf': y_at_time_point,
-                                     'time':time_point,
-                                    'angle':x}))
-
-    df_combined = pd.concat(df_list)
-
-    return df_combined
+    return x, cdf_list
 
 ############### Matching with Experiment #########################
 
