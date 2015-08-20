@@ -312,7 +312,7 @@ cdef class Inflation_Lattice_Simulation(object):
         public double[:] time_array
         public long[:, :] lattice_history
         public list wall_position_history
-        public list wall_position_type
+        public list wall_type_history
         public bool record_wall_position
         public double[:] record_time_array
 
@@ -351,7 +351,7 @@ cdef class Inflation_Lattice_Simulation(object):
         self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
         self.wall_position_history = None
-        self.wall_position_type = None
+        self.wall_type_history = None
         self.coalescence_array = None
         self.annihilation_array = None
         self.num_walls_array = None
@@ -406,8 +406,8 @@ cdef class Inflation_Lattice_Simulation(object):
         if self.record_wall_position:
             self.wall_position_history = []
             self.wall_position_history.append([z.position for z in self.lattice.walls])
-            self.wall_position_type = []
-            self.wall_position_type.append([z.wall_type for z in self.lattice.walls])
+            self.wall_type_history = []
+            self.wall_type_history.append([z.wall_type for z in self.lattice.walls])
 
         self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
@@ -566,7 +566,7 @@ cdef class Inflation_Lattice_Simulation(object):
                     if self.record_wall_position:
                         if self.lattice.walls.shape[0] != 0:
                             self.wall_position_history.append([z.position for z in self.lattice.walls])
-                            self.wall_position_type.append([z.wall_type for z in self.lattice.walls])
+                            self.wall_type_history.append([z.wall_type for z in self.lattice.walls])
 
             else: # Record at given times
                 if num_recorded - 1 < self.record_time_array.shape[0]:
@@ -595,7 +595,7 @@ cdef class Inflation_Lattice_Simulation(object):
                         if self.record_wall_position:
                             if self.lattice.walls.shape[0] != 0:
                                 self.wall_position_history.append([z.position for z in self.lattice.walls])
-                                self.wall_position_type.append([z.wall_type for z in self.lattice.walls])
+                                self.wall_type_history.append([z.wall_type for z in self.lattice.walls])
 
             # Refresh for the next time interval
             step_count += 1

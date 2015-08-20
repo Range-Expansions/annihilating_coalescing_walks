@@ -50,6 +50,35 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
 
 ######## Averaging domain sizes from simulation ###############
 
+def get_domain_size_df(completed_sim):
+    angular_distances = []
+    domain_types = []
+
+    walls = np.asarray(completed_sim.wall_position_history)
+    wall_types = np.asarray(completed_sim.wall_type_history)
+    for count, cur_walls in enumerate(walls):
+        cur_walls = np.array(cur_walls)
+        angular_distances.append(cur_walls[1:] - cur_walls[0:-1])
+        domain_types.append([wall_types[z][0] for z in range(1, len(wall_types))])
+
+        if np.any(angular_distances[count] < 0):
+            print 'Walls must not have been ordered correctly...'
+            print count
+
+    time_array = np.asarray(completed_sim.time_array)
+
+    # Now wrap the data in a DF
+    df_list = []
+    for cur_ang, cur_type, time_point in zip(angular_distances, domain_types, time_array):
+        df_list.append(pd.DataFrame({'angular_distance': cur_ang,
+                                     'time':time_point,
+                                    'type': cur_type}))
+
+    df_combined = pd.concat(df_list)
+
+    return df_combined
+
+
 def get_average_domain_size_ecdf(completed_sim, num_ecdf_points=360):
 
     y_array = []
