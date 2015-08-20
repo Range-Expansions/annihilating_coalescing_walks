@@ -312,6 +312,7 @@ cdef class Inflation_Lattice_Simulation(object):
         public double[:] time_array
         public long[:, :] lattice_history
         public list wall_position_history
+        public list wall_position_type
         public bool record_wall_position
         public double[:] record_time_array
 
@@ -350,6 +351,7 @@ cdef class Inflation_Lattice_Simulation(object):
         self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
         self.wall_position_history = None
+        self.wall_position_type = None
         self.coalescence_array = None
         self.annihilation_array = None
         self.num_walls_array = None

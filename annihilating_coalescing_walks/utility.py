@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import annihilating_coalescing_walks.inflation as acwi
+import numpy as np
+import statsmodels.api as sm
+import gc
 
 def get_log_record_times(max_order, number_per_interval=100):
     if number_per_interval > 200:
@@ -44,6 +47,48 @@ def average_simulations(sim, num_simulations = 100, **kwargs):
         new_seed = np.random.randint(0, 2**32 - 1)
         sim.reset(new_seed)
     return df_list
+
+######## Averaging domain sizes from simulation ###############
+
+def get_average_domain_size_ecdf(completed_sim, num_ecdf_points=360):
+
+    y_array = []
+    time_array = []
+
+    x = np.linspace(0, 2*np.pi, num_ecdf_points)
+
+    walls = np.asarray(completed_sim.wall_position_history)
+    angular_distances = []
+    for count, cur_walls in enumerate(walls):
+        cur_walls = np.array(cur_walls)
+        angular_distances.append(cur_walls[1:] - cur_walls[0:-1])
+
+        if np.any(angular_distances[count] < 0):
+            print 'Walls must not have been ordered correctly...'
+            print count
+
+    sim_y = []
+    for cur_angle in angular_distances:
+        ecdf = sm.distributions.ECDF(cur_angle)
+        y = ecdf(x)
+        sim_y.append(y)
+    y_array.append(sim_y)
+
+    times = np.asarray(completed_sim.time_array)
+    time_array.append(times)
+
+    # Now wrap the data in a DF
+    df_list = []
+    for y_at_time_point, time_point in zip(y_array, time_array):
+        df_list.append(pd.DataFrame({'angular_ecdf': y_at_time_point,
+                                     'time':time_point,
+                                    'angle':x}))
+
+    df_combined = pd.concat(df_list)
+
+    return df_combined
+
+############### Matching with Experiment #########################
 
 # These are the parameters when the random walk approximation begins to hold
 INITIAL_RADIUS = 3.50
