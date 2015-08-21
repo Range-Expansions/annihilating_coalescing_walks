@@ -94,19 +94,17 @@ def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
     # groupby time index
     gb = domain_size_df.groupby('time_index')
 
-    cdf_list = []
-    time_index_list = []
-    time_list = []
+    angular_ecdf_df_list = []
     for name, data in gb:
         ecdf = sm.distributions.ECDF(data['angular_distance'].values)
         cdf = ecdf(x)
-        cdf_list.append(cdf)
 
-        time_index_list.append(name)
-        time_list.append(data['time'].iloc[0])
-    cdf_list = np.array(cdf_list)
+        df = pd.DataFrame({'angle':x, 'domain_ecdf':cdf, 'time_index':name, 'time':data['time'].iloc[0]})
+        angular_ecdf_df_list.append(df)
 
-    return x, cdf_list
+    combined_df = pd.concat(angular_ecdf_df_list)
+
+    return x, combined_df
 
 ############### Matching with Experiment #########################
 
