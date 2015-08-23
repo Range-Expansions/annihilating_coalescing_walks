@@ -5,7 +5,7 @@ import numpy as np
 import statsmodels.api as sm
 import gc
 
-def get_log_record_times(max_order, number_per_interval=100):
+def get_log_record_times(max_order, number_per_interval=100, include_first_two_orders=True):
     if number_per_interval > 200:
         print '200 point is the most that can be done per octave without' \
               'looking at a scale less than O(1)'
@@ -16,10 +16,15 @@ def get_log_record_times(max_order, number_per_interval=100):
         elif max_order == 2:
             return np.arange(1, 101)
         else:
-            first_two_orders = np.arange(1, 101)
+            first_two_orders = None
+            if include_first_two_orders:
+                first_two_orders = np.arange(1, 101)
             num_octaves = max_order - 2
             rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves)
-            return np.hstack((first_two_orders, rest_of_orders))
+            if include_first_two_orders:
+                return np.hstack((first_two_orders, rest_of_orders))
+            else:
+                return rest_of_orders
 
 def get_simulation_df(sim, max_time_power = 8, run_sim=True):
     if run_sim:
