@@ -65,10 +65,12 @@ def get_domain_size_df(completed_sim):
     for cur_walls, cur_types in zip(walls, wall_types):
         cur_walls = np.array(cur_walls)
         cur_types = np.array(cur_types)
-        angular_distances.append(cur_walls[1:] - cur_walls[0:-1])
-        angular_distances.append(cur_walls[0] - cur_walls[-1] + 2*np.pi)
-        domain_types.append([cur_types[z][0] for z in range(1, len(cur_types))])
-        domain_types.append(cur_types[0][0])
+        deltaThetas = cur_walls[1:] - cur_walls[0:-1]
+        deltaThetas = np.append(deltaThetas, cur_walls[0] - cur_walls[-1] + 2*np.pi)
+        angular_distances.append(deltaThetas)
+        cur_domain_types = [cur_types[z][0] for z in range(1, len(cur_types))]
+        cur_domain_types = np.append(cur_domain_types, cur_types[0][0])
+        domain_types.append(cur_domain_types)
 
         if np.any(angular_distances[count] < 0):
             print 'Walls must not have been ordered correctly...'
