@@ -18,7 +18,7 @@ def get_log_record_times(max_order, number_per_interval=100, include_first_two_o
         else:
             first_two_orders = None
             if include_first_two_orders:
-                first_two_orders = np.arange(1, 101)
+                first_two_orders = np.arange(1, 100)
             num_octaves = max_order - 2
             rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves)
             if include_first_two_orders:
