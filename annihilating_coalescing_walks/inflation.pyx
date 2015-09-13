@@ -313,7 +313,9 @@ cdef class Inflation_Lattice_Simulation(object):
         public long[:, :] lattice_history
         public list wall_position_history
         public list wall_type_history
+        public list collision_type_history
         public bool record_wall_position
+        public bool record_collision_types
         public double[:] record_time_array
 
         public double[:] annihilation_array
@@ -333,7 +335,7 @@ cdef class Inflation_Lattice_Simulation(object):
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
-                 double jump_length=0.001, bool superdiffusive=False,
+                 double jump_length=0.001, bool superdiffusive=False, record_collision_types=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
         self.record_every = record_every
@@ -352,6 +354,7 @@ cdef class Inflation_Lattice_Simulation(object):
         self.lattice_history = None
         self.wall_position_history = None
         self.wall_type_history = None
+        self.collision_type_history = None
         self.coalescence_array = None
         self.annihilation_array = None
         self.num_walls_array = None
@@ -365,10 +368,11 @@ cdef class Inflation_Lattice_Simulation(object):
         self.output_bins_space = None
 
         self.record_wall_position = record_wall_position
+        self.record_collision_types = record_collision_types
 
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
-        '''Necessary for subclassing.'''
+        """Necessary for subclassing."""
         return Lattice(debug=self.debug, **kwargs)
 
     def reset(Inflation_Lattice_Simulation self, seed):
@@ -408,6 +412,8 @@ cdef class Inflation_Lattice_Simulation(object):
             self.wall_position_history.append([z.position for z in self.lattice.walls])
             self.wall_type_history = []
             self.wall_type_history.append([z.wall_type for z in self.lattice.walls])
+        if self.record_collision_types:
+            self.collision_type_history = [[]]
 
         self.coalescence_array = -1*np.ones(num_record_steps, dtype=np.double)
         self.annihilation_array = -1*np.ones(num_record_steps, dtype=np.double)
@@ -489,7 +495,10 @@ cdef class Inflation_Lattice_Simulation(object):
                         current_wall_index = 0
 
                     current_wall.position = right_neighbor.position
-                    # TODO: DETERMINE IF THIS IS A WRAPAROUND!!!
+
+                    if self.record_collision_types:
+                        self.collision_type_history[num_recorded - 1].append([current_wall.wall_type, right_neighbor.wall_type])
+
                     collision_type = self.lattice.collide(current_wall, right_neighbor, current_wall_index)
                 else: # Deal with wrapping
                     current_wall.position += distance_moved
@@ -516,6 +525,10 @@ cdef class Inflation_Lattice_Simulation(object):
                     left_wall_index = c_pos_mod(current_wall_index - 1, self.lattice.walls.shape[0])
                     # Left neighbor position is where the collision should happen.
                     # TODO: Check if this is a wraparound collision!
+
+                    if self.record_collision_types:
+                        self.collision_type_history[num_recorded - 1].append([left_neighbor.wall_type, current_wall.wall_type])
+
                     collision_type = self.lattice.collide(left_neighbor, current_wall, left_wall_index)
                 else: # Deal with wrapping
                     current_wall.position -= distance_moved
