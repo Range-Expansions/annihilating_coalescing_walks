@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -572,6 +572,10 @@ cdef class Inflation_Lattice_Simulation(object):
                     # Count the number of walls
                     self.num_walls_array[num_recorded] = self.lattice.walls.shape[0]
 
+                    # Add a new index to count annihilations and coalescences
+                    if self.record_collision_types:
+                        self.collision_type_history.append([])
+
                     # Increment the number recorded
                     time_remainder = 0
                     num_recorded += 1
@@ -602,6 +606,11 @@ cdef class Inflation_Lattice_Simulation(object):
                         num_recorded += 1
 
                         time_remainder = 0 # time-remainder acts as the delta t in this case.
+
+                        # Record collision types
+
+                        if self.record_collision_types:
+                            self.collision_type_history.append([])
 
                         # Record wall positions
 
@@ -658,6 +667,8 @@ cdef class Inflation_Lattice_Simulation(object):
         self.annihilation_array = self.annihilation_array[0:num_recorded]
         self.coalescence_array = self.coalescence_array[0:num_recorded]
         self.num_walls_array = self.num_walls_array[0:num_recorded]
+        if self.record_collision_types:
+            self.collision_type_history = self.collision_type_history[0:num_recorded]
 
         # DONE! Deallocate as necessary.
         gsl_rng_free(r)
