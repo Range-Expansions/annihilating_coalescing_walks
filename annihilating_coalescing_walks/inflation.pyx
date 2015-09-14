@@ -96,17 +96,18 @@ cdef class Lattice(object):
         public bool debug
         public bool use_random_float_IC
         public bool use_specified_or_bio_IC
+        public double a = 0.001 # E. coli size, a constant
+        public double initial_radius
 
-    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None,
-                 bool use_random_float_IC = False, bool use_specified_or_bio_IC=True):
+    def __init__(Lattice self, long lattice_size, double initial_radius, long num_types=3, bool debug=False,
+                long[:] lattice=None, bool use_random_float_IC=False, bool use_specified_or_bio_IC=True):
+
         self.lattice_size = lattice_size
         self.num_types=num_types
         if use_specified_or_bio_IC:
             if lattice is None:
-
-                # Get the number of walls
-
-                self.lattice_ic = np.random.randint(0, num_types, lattice_size)
+                L = self.lattice_size # This means something different in the float-based case
+                self.lattice_ic = np.random.randint(0, num_types, L)
                 self.lattice = self.lattice_ic.copy()
             else:
                 self.lattice_ic = lattice
@@ -119,21 +120,20 @@ cdef class Lattice(object):
         self.walls = self.get_walls()
 
     cdef Wall[:] get_walls(Lattice self): #TODO: If you input an IC, alternative code should be run!
-        """Only to be used when initializing. If used again, terrible, terrible things will happen. This is a hacky
-        way to take the IC off lattice in the inflation case, as if a spacing of 1 is used between points
-        (the on lattice IC) strange things will happen. Kind of hackey but that's ok."""
-        #right_shift = np.roll(self.lattice, 1)
-        #wall_locations = self.lattice != right_shift
-        # Only use this to get the number of walls. Scatter the walls randomly in the interval [0, lattice_size)
-        #num_walls = np.sum(wall_locations)
-        # Draw num_wall positions
+        """Only to be used when initializing. If used again, terrible, terrible things will happen."""
+        if self.use_specified_or_bio_IC:
+            right_shift = np.roll(self.lattice, 1)
+            wall_locations = self.lattice != right_shift
 
-        # TODO: Make this more legit, you specify the initial number of walls now
-        num_walls = self.lattice_size
-        wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
+
+
+        elif self.use_random_float_IC:
+            # Draw num_wall positions
+            num_walls = self.lattice_size
+            wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
+
         # Create walls
         wall_list = []
-
         # Sort the positions
         wall_positions = np.sort(wall_positions)
 
