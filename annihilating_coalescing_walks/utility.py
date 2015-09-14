@@ -115,6 +115,33 @@ def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
 
     return x, combined_df
 
+def get_collision_type_df(sim):
+
+    collision_type_history = sim.collision_type_history
+
+    time_array = []
+    collisions = []
+
+    for time_index, time_data in enumerate(collision_type_history):
+        for collision_type in time_data:
+            time_array.append(time_index)
+            collision_type = np.array(collision_type)
+            flattened_type = collision_type.flatten()
+            collisions.append(flattened_type)
+
+    time_array = np.array(time_array)
+    collisions = np.array(collisions)
+
+    collision_df = pd.DataFrame({'time_index':time_array,
+                                 'i':collisions[:, 0],
+                                 'j':collisions[:, 1],
+                                 'k':collisions[:, 2],
+                                 'l':collisions[:, 3]
+                                })
+    collision_df.set_index('time_index', inplace=True)
+
+    return collision_df
+
 ############### Matching with Experiment #########################
 
 # These are the parameters when the random walk approximation begins to hold

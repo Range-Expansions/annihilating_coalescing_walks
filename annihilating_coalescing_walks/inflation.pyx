@@ -94,16 +94,23 @@ cdef class Lattice(object):
         public Wall[:] walls
         public int num_types
         public bool debug
+        public bool use_random_float_IC
+        public bool use_specified_or_bio_IC
 
-    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None):
+    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False, long[:] lattice=None,
+                 bool use_random_float_IC = False, bool use_specified_or_bio_IC=True):
         self.lattice_size = lattice_size
         self.num_types=num_types
-        #if lattice is None:
-        #    self.lattice_ic = np.random.randint(0, num_types, lattice_size)
-        #    self.lattice = self.lattice_ic.copy()
-        #else:
-        #    self.lattice_ic = lattice
-        #    self.lattice = self.lattice_ic.copy()
+        if use_specified_or_bio_IC:
+            if lattice is None:
+
+                # Get the number of walls
+
+                self.lattice_ic = np.random.randint(0, num_types, lattice_size)
+                self.lattice = self.lattice_ic.copy()
+            else:
+                self.lattice_ic = lattice
+                self.lattice = self.lattice_ic.copy()
         self.walls = self.get_walls()
         self.debug = debug
 
