@@ -119,64 +119,90 @@ cdef class Lattice(object):
         self.lattice = self.lattice_ic.copy()
         self.walls = self.get_walls()
 
-    cdef Wall[:] get_walls(Lattice self): #TODO: If you input an IC, alternative code should be run!
+    cdef Wall[:] get_on_lattice_walls(Lattice self):
         """Only to be used when initializing. If used again, terrible, terrible things will happen."""
-        if self.use_specified_or_bio_IC:
-            right_shift = np.roll(self.lattice, 1)
-            wall_locations = self.lattice != right_shift
-            wall_positions = np.where(wall_locations)[0]
-            wall_positions = ANGULAR_SIZE*(wall_positions/float(self.lattice_size))
-            wall_list = []
+        right_shift = np.roll(self.lattice, 1)
+        wall_locations = self.lattice != right_shift
+        wall_list = []
+        wall_positions = np.where(wall_locations)[0]
+        for cur_position in wall_positions:
+            wall_list.append(self.get_new_wall(float(cur_position)))
+        wall_list = np.array(wall_list)
 
-            for cur_position in wall_positions:
-                wall_list.append(self.get_new_wall(float(cur_position)))
+        # Sort the wall list
+        wall_list = np.sort(wall_list, axis=None)
 
-            wall_list = np.array(wall_list)
-            wall_list = np.sort(wall_list, axis=None)
+        # Assign neighbors
+        for i in range(wall_list.shape[0]):
+            left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
+            right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
+            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
 
-        elif self.use_random_float_IC:
-            # Draw num_wall positions
-            num_walls = self.lattice_size
-            wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
-            wall_positions = np.sort(wall_positions)
+        cdef long left_index
+        cdef long right_index
+
+        # Indicate what type of wall the wall is
+        for i in range(wall_list.shape[0]):
+            cur_wall = wall_list[i]
+            cur_position = int(np.round(wall_list[i].position))
+
+            left_index = np.mod(cur_position - 1, self.lattice_size)
+            right_index = cur_position
+
+            left_of_kink = self.lattice[left_index]
+            right_of_kink = self.lattice[right_index]
+            cur_type = np.array([left_of_kink, right_of_kink])
+            cur_wall.wall_type = cur_type
+
+        return wall_list
+
+    cdef Wall[:] get_off_lattice_walls(Lattice self): #TODO: If you input an IC, alternative code should be run!
+        """Only to be used when initializing. If used again, terrible, terrible things will happen. This is a hacky
+        way to take the IC off lattice in the inflation case, as if a spacing of 1 is used between points
+        (the on lattice IC) strange things will happen. Kind of hackey but that's ok. Also assumes
+        equal fractions of all colors, but we could fix that in the future."""
+
+        num_walls = self.lattice_size
+        wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
+        # Create walls
+        wall_list = []
+
+        # Sort the positions
+        wall_positions = np.sort(wall_positions)
 
         previous_wall_type = None
         new_wall_type = None
         count = 0
-        if self.use_random_float_IC:
-            for cur_position in wall_positions:
-                if count == 0:
-                    previous_wall_type = np.random.randint(self.num_types)
+        for cur_position in wall_positions:
+            if count == 0:
+                previous_wall_type = np.random.randint(self.num_types)
+                new_wall_type = np.random.randint(self.num_types)
+                while new_wall_type == previous_wall_type: # The wall has to be different...
                     new_wall_type = np.random.randint(self.num_types)
-                    while new_wall_type == previous_wall_type: # The wall has to be different...
-                        new_wall_type = np.random.randint(self.num_types)
-                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                    wall_list.append(new_wall)
-                    previous_wall_type = new_wall_type
-                elif count == num_walls - 1:
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                wall_list.append(new_wall)
+                previous_wall_type = new_wall_type
+            elif count == num_walls - 1:
+                new_wall_type = np.random.randint(self.num_types)
+                while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
                     new_wall_type = np.random.randint(self.num_types)
-                    while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
-                        new_wall_type = np.random.randint(self.num_types)
-                    # Set the wall type of the first wall to the right of this one.
-                    wall_list[0].wall_type[LEFT] = new_wall_type
-                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                    wall_list.append(new_wall)
-                else:
+                # Set the wall type of the first wall to the right of this one.
+                wall_list[0].wall_type[LEFT] = new_wall_type
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                wall_list.append(new_wall)
+            else:
+                new_wall_type = np.random.randint(self.num_types)
+                while new_wall_type == previous_wall_type: # The wall has to be different...
                     new_wall_type = np.random.randint(self.num_types)
-                    while new_wall_type == previous_wall_type: # The wall has to be different...
-                        new_wall_type = np.random.randint(self.num_types)
-                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                    wall_list.append(new_wall)
-                    previous_wall_type = new_wall_type
-                count += 1
-        elif self.use_specified_or_bio_IC:
-            print 'waka'
+                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                wall_list.append(new_wall)
+                previous_wall_type = new_wall_type
+            count += 1
 
         wall_list = np.array(wall_list)
-
 
         # Assign neighbors
         for i in range(wall_list.shape[0]):
@@ -187,7 +213,6 @@ cdef class Lattice(object):
         if self.debug:
             print 'Debugging initial wall condition...'
             # The wall positions can be debugged elsewhere...check neighbors.
-
 
         return wall_list
 
