@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=True
+#cython: boundscheck=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -403,9 +403,16 @@ cdef class Inflation_Lattice_Simulation(object):
         self.annihilation_array = None
         self.num_walls_array = None
 
-        self.radius = radius
         self.velocity = velocity
         self.jump_length = jump_length # Should be a hard constant, equal to 0.001mm, which are the units of the simulation!
+
+        self.radius = radius
+        if 'use_specified_or_bio_IC' in kwargs:
+            if kwargs['use_specified_or_bio_IC']:
+                print 'Replacing radius with expected one for E. coli size and number of E. coli. Biological IC.'
+                self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
+                print 'Radius: ' , self.radius
+
         self.superdiffusive = superdiffusive
 
         self.lattice_spacing_output = lattice_spacing_output
