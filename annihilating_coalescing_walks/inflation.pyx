@@ -85,7 +85,7 @@ cdef class Selection_Wall(Wall):
 
 cdef double ANGULAR_SIZE = 2*np.pi
 
-cdef double a = 0.001 # E. coli size, a constant
+cdef double a = 10.**-3. # E. coli size, a constant
 
 cdef class Lattice(object):
 
@@ -103,7 +103,7 @@ cdef class Lattice(object):
         public double initial_radius
 
     def __init__(Lattice self, long lattice_size, double initial_radius, long num_types=3, bool debug=False,
-                long[:] lattice=None, bool use_default_IC, bool use_random_float_IC=False,
+                long[:] lattice=None, bool use_default_IC=True, bool use_random_float_IC=False,
                  bool use_specified_or_bio_IC=False):
 
         self.lattice_size = lattice_size
@@ -138,6 +138,8 @@ cdef class Lattice(object):
         wall_locations = self.lattice != right_shift
         wall_list = []
         wall_positions = np.where(wall_locations)[0]
+        # Convert wall positions to angle!
+        wall_positions = ANGULAR_SIZE * wall_positions/float(self.lattice_size)
         for cur_position in wall_positions:
             wall_list.append(self.get_new_wall(float(cur_position)))
         wall_list = np.array(wall_list)
@@ -154,7 +156,8 @@ cdef class Lattice(object):
         cdef long left_index
         cdef long right_index
 
-        # Indicate what type of wall the wall is
+        # Indicate what type of wall the wall is by looking back in the lattice
+        cdef double to_lattice_factor = float(self.lattice_size)/ANGULAR_SIZE
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
             cur_position = int(np.round(wall_list[i].position))
@@ -404,7 +407,7 @@ cdef class Inflation_Lattice_Simulation(object):
 
         self.radius = radius
         self.velocity = velocity
-        self.jump_length = jump_length
+        self.jump_length = jump_length # Should be a hard constant, equal to 0.001mm, which are the units of the simulation!
         self.superdiffusive = superdiffusive
 
         self.lattice_spacing_output = lattice_spacing_output
