@@ -85,6 +85,8 @@ cdef class Selection_Wall(Wall):
 
 cdef double ANGULAR_SIZE = 2*np.pi
 
+cdef double a = 0.001 # E. coli size, a constant
+
 cdef class Lattice(object):
 
     cdef:
@@ -96,18 +98,27 @@ cdef class Lattice(object):
         public bool debug
         public bool use_random_float_IC
         public bool use_specified_or_bio_IC
-        public double a = 0.001 # E. coli size, a constant
+        public bool use_default_IC
+
         public double initial_radius
 
     def __init__(Lattice self, long lattice_size, double initial_radius, long num_types=3, bool debug=False,
-                long[:] lattice=None, bool use_random_float_IC=False, bool use_specified_or_bio_IC=True):
+                long[:] lattice=None, bool use_default_IC, bool use_random_float_IC=False,
+                 bool use_specified_or_bio_IC=False):
 
         self.lattice_size = lattice_size
         self.num_types=num_types
+        self.use_default_IC = use_default_IC
         self.use_random_float_IC = use_random_float_IC
         self.use_specified_or_bio_IC = use_specified_or_bio_IC
         self.debug = debug
 
+        if self.use_random_float_IC or self.use_specified_or_bio_IC:
+            self.use_default_IC = False
+        elif self.use_default_IC:
+            self.use_random_float_IC = True # Use the float IC as default
+        else:
+            print 'I have no idea what IC you want me to use! Quitting...'
 
         if self.use_specified_or_bio_IC:
             if lattice is None:
