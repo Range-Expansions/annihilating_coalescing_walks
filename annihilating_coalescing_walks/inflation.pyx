@@ -124,57 +124,59 @@ cdef class Lattice(object):
         if self.use_specified_or_bio_IC:
             right_shift = np.roll(self.lattice, 1)
             wall_locations = self.lattice != right_shift
+            wall_positions = np.where(wall_locations)[0]
+            wall_positions = ANGULAR_SIZE*(wall_positions/float(self.lattice_size))
+            wall_list = []
 
+            for cur_position in wall_positions:
+                wall_list.append(self.get_new_wall(float(cur_position)))
 
+            wall_list = np.array(wall_list)
+            wall_list = np.sort(wall_list, axis=None)
 
         elif self.use_random_float_IC:
             # Draw num_wall positions
             num_walls = self.lattice_size
             wall_positions = np.random.rand(num_walls)*ANGULAR_SIZE
-
-        # Create walls
-        wall_list = []
-        # Sort the positions
-        wall_positions = np.sort(wall_positions)
+            wall_positions = np.sort(wall_positions)
 
         previous_wall_type = None
         new_wall_type = None
         count = 0
-        for cur_position in wall_positions:
-            if count == 0:
-                previous_wall_type = np.random.randint(self.num_types)
-                new_wall_type = np.random.randint(self.num_types)
-                while new_wall_type == previous_wall_type: # The wall has to be different...
+        if self.use_random_float_IC:
+            for cur_position in wall_positions:
+                if count == 0:
+                    previous_wall_type = np.random.randint(self.num_types)
                     new_wall_type = np.random.randint(self.num_types)
-                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                wall_list.append(new_wall)
-                previous_wall_type = new_wall_type
-            elif count == num_walls - 1:
-                new_wall_type = np.random.randint(self.num_types)
-                while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
+                    while new_wall_type == previous_wall_type: # The wall has to be different...
+                        new_wall_type = np.random.randint(self.num_types)
+                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                    wall_list.append(new_wall)
+                    previous_wall_type = new_wall_type
+                elif count == num_walls - 1:
                     new_wall_type = np.random.randint(self.num_types)
-                # Set the wall type of the first wall to the right of this one.
-                wall_list[0].wall_type[LEFT] = new_wall_type
-                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                wall_list.append(new_wall)
-            else:
-                new_wall_type = np.random.randint(self.num_types)
-                while new_wall_type == previous_wall_type: # The wall has to be different...
+                    while (new_wall_type == previous_wall_type) or (new_wall_type == wall_list[0].wall_type[RIGHT]): # The wall has to be different...
+                        new_wall_type = np.random.randint(self.num_types)
+                    # Set the wall type of the first wall to the right of this one.
+                    wall_list[0].wall_type[LEFT] = new_wall_type
+                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                    wall_list.append(new_wall)
+                else:
                     new_wall_type = np.random.randint(self.num_types)
-                wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
-                new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
-                wall_list.append(new_wall)
-                previous_wall_type = new_wall_type
-            count += 1
+                    while new_wall_type == previous_wall_type: # The wall has to be different...
+                        new_wall_type = np.random.randint(self.num_types)
+                    wall_type = np.array([previous_wall_type, new_wall_type], dtype=np.long)
+                    new_wall = self.get_new_wall(cur_position, wall_type=wall_type)
+                    wall_list.append(new_wall)
+                    previous_wall_type = new_wall_type
+                count += 1
+        elif self.use_specified_or_bio_IC:
+            print 'waka'
 
         wall_list = np.array(wall_list)
 
-        # wall_list should be in order now
-
-        # Sort the wall list
-        # wall_list = np.sort(wall_list, axis=None)
 
         # Assign neighbors
         for i in range(wall_list.shape[0]):
