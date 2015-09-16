@@ -104,7 +104,12 @@ cdef class Lattice(object):
 
         self.lattice_size = lattice_size
         self.num_types=num_types
-        if use_specified_or_bio_IC:
+        self.use_random_float_IC = use_random_float_IC
+        self.use_specified_or_bio_IC = use_specified_or_bio_IC
+        self.debug = debug
+
+
+        if self.use_specified_or_bio_IC:
             if lattice is None:
                 L = self.lattice_size # This means something different in the float-based case
                 self.lattice_ic = np.random.randint(0, num_types, L)
@@ -112,12 +117,9 @@ cdef class Lattice(object):
             else:
                 self.lattice_ic = lattice
                 self.lattice = self.lattice_ic.copy()
-        self.walls = self.get_walls()
-        self.debug = debug
-
-    cdef reset(self):
-        self.lattice = self.lattice_ic.copy()
-        self.walls = self.get_walls()
+            self.walls = self.get_on_lattice_walls()
+        elif self.use_random_float_IC:
+            self.walls = self.get_off_lattice_walls()
 
     cdef Wall[:] get_on_lattice_walls(Lattice self):
         """Only to be used when initializing. If used again, terrible, terrible things will happen."""
@@ -136,7 +138,7 @@ cdef class Lattice(object):
         for i in range(wall_list.shape[0]):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
-            wall_list[i].wall_neighbors = np.array([left_wall, right_wall])
+            wall_list[i].wall_neighbors = np.array([weakref.proxy(left_wall), weakref.proxy(right_wall)])
 
         cdef long left_index
         cdef long right_index
@@ -209,10 +211,6 @@ cdef class Lattice(object):
             left_wall = wall_list[np.mod(i - 1, wall_list.shape[0])]
             right_wall = wall_list[np.mod(i + 1, wall_list.shape[0])]
             wall_list[i].wall_neighbors = np.array([weakref.proxy(left_wall), weakref.proxy(right_wall)])
-
-        if self.debug:
-            print 'Debugging initial wall condition...'
-            # The wall positions can be debugged elsewhere...check neighbors.
 
         return wall_list
 
