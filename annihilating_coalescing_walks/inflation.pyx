@@ -100,9 +100,7 @@ cdef class Lattice(object):
         public bool use_specified_or_bio_IC
         public bool use_default_IC
 
-        public double initial_radius
-
-    def __init__(Lattice self, long lattice_size, double initial_radius, long num_types=3, bool debug=False,
+    def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False,
                 long[:] lattice=None, bool use_default_IC=True, bool use_random_float_IC=False,
                  bool use_specified_or_bio_IC=False):
 
@@ -160,7 +158,7 @@ cdef class Lattice(object):
         cdef double to_lattice_factor = float(self.lattice_size)/ANGULAR_SIZE
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
-            cur_position = int(np.round(wall_list[i].position))
+            cur_position = int(np.round(to_lattice_factor * wall_list[i].position))
 
             left_index = np.mod(cur_position - 1, self.lattice_size)
             right_index = cur_position
