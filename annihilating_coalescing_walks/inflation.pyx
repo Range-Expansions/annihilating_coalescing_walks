@@ -368,6 +368,7 @@ cdef class Inflation_Lattice_Simulation(object):
 
         public unsigned long int seed
 
+        public double initial_radius
         public double radius
         public double velocity
         public double jump_length
@@ -409,6 +410,7 @@ cdef class Inflation_Lattice_Simulation(object):
         self.velocity = velocity
         self.jump_length = jump_length # Should be a hard constant, equal to 0.001mm, which are the units of the simulation!
 
+        self.initial_radius = radius
         self.radius = radius
         if 'use_specified_or_bio_IC' in kwargs:
             if kwargs['use_specified_or_bio_IC']:
@@ -496,7 +498,6 @@ cdef class Inflation_Lattice_Simulation(object):
             object left_neighbor, right_neighbor
             long left_wall_index
             double distance_moved
-            double initial_radius = self.radius
             double random_num
             double p_of_x
 
@@ -704,7 +705,7 @@ cdef class Inflation_Lattice_Simulation(object):
                 print
 
             #### Inflate! #####
-            self.radius = initial_radius + self.velocity*cur_time
+            self.radius = self.initial_radius + self.velocity*cur_time
 
         #### Simulation is done; finish up. ####
 
