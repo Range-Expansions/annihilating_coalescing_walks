@@ -410,13 +410,14 @@ cdef class Inflation_Lattice_Simulation(object):
         self.velocity = velocity
         self.jump_length = jump_length # Should be a hard constant, equal to 0.001mm, which are the units of the simulation!
 
-        self.initial_radius = radius
         self.radius = radius
         if 'use_specified_or_bio_IC' in kwargs:
             if kwargs['use_specified_or_bio_IC']:
                 print 'Replacing radius with expected one for Biological IC.' # Based on e.coli size and jump length
                 self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
                 print 'Radius: ' , self.radius
+        self.initial_radius = radius # Do this after the correction or *bad* things will happen
+
 
         self.superdiffusive = superdiffusive
 
