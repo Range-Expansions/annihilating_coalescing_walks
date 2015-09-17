@@ -19,7 +19,7 @@ extensions = [
 
 setup(
     name='annihilating-coalescing-walks',
-    version='0.2',
+    version='0.3',
     packages=['annihilating_coalescing_walks'],
     url='',
     license='',

@@ -375,6 +375,9 @@ cdef class Inflation_Lattice_Simulation(object):
         public double[:] output_bins_space
         public bool superdiffusive
 
+        public double finish_time
+        public int final_num_walls
+
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
@@ -409,7 +412,7 @@ cdef class Inflation_Lattice_Simulation(object):
         self.radius = radius
         if 'use_specified_or_bio_IC' in kwargs:
             if kwargs['use_specified_or_bio_IC']:
-                print 'Replacing radius with expected one for E. coli size and number of E. coli. Biological IC.'
+                print 'Replacing radius with expected one for Biological IC.' # Based on e.coli size and jump length
                 self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
                 print 'Radius: ' , self.radius
 
@@ -421,6 +424,8 @@ cdef class Inflation_Lattice_Simulation(object):
         self.record_wall_position = record_wall_position
         self.record_collision_types = record_collision_types
 
+        self.finish_time = -1
+        self.final_num_walls = -1
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
         """Necessary for subclassing."""
@@ -711,7 +716,11 @@ cdef class Inflation_Lattice_Simulation(object):
 
             print self.lattice.walls.shape[0] , 'walls remaining, done!'
 
+        # Record the finish time
+        self.finish_time = cur_time
+        self.final_num_walls = self.lattice.walls.shape[0]
         # Cut the output appropriately
+
         self.time_array = self.time_array[0:num_recorded]
         if self.record_lattice:
             self.lattice_history = self.lattice_history[0:num_recorded, :]
