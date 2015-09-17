@@ -418,7 +418,6 @@ cdef class Inflation_Lattice_Simulation(object):
                 print 'Radius: ' , self.radius
         self.initial_radius = radius # Do this after the correction or *bad* things will happen
 
-
         self.superdiffusive = superdiffusive
 
         self.lattice_spacing_output = lattice_spacing_output
