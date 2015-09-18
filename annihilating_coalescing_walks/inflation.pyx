@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -396,7 +396,6 @@ cdef class Inflation_Lattice_Simulation(object):
         # Make sure the python seed is set before initializing the lattice...
         self.seed = seed
         np.random.seed(self.seed)
-        self.lattice = self.initialize_lattice(**kwargs)
 
         self.time_array = None # Assumes the first time is always zero!
         self.lattice_history = None
@@ -428,6 +427,8 @@ cdef class Inflation_Lattice_Simulation(object):
 
         self.finish_time = -1
         self.final_num_walls = -1
+
+        self.lattice = self.initialize_lattice(**kwargs) # Initialize the lattice after the seed is set!
 
     def initialize_lattice(Inflation_Lattice_Simulation self, **kwargs):
         """Necessary for subclassing."""
