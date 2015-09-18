@@ -415,7 +415,7 @@ cdef class Inflation_Lattice_Simulation(object):
                 print 'Replacing radius with expected one for Biological IC.' # Based on e.coli size and jump length
                 self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
                 print 'Radius: ' , self.radius
-        self.initial_radius = radius # Do this after the correction or *bad* things will happen
+        self.initial_radius = self.radius # Do this after the correction or *bad* things will happen
 
         self.superdiffusive = superdiffusive
 
