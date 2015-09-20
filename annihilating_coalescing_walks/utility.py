@@ -140,7 +140,30 @@ def get_collision_type_df(sim):
                                 })
     collision_df.set_index('time_index', inplace=True)
 
+    # Set the times for simplicity
+    times = np.asarray(sim.time_array)
+    time_df = pd.DataFrame({'time':times, 'time_index':np.arange(0, times.shape[0])})
+    time_df.set_index('time_index', inplace=True)
+
+    collision_df = collision_df.join(time_df)
+
     return collision_df
+
+def get_collision_type_count_df(sim):
+    collisions = get_collision_type_df(sim)
+    gb = collisions.reset_index().groupby(['i', 'j', 'k', 'l', 'time_index'])
+    count_type_list = []
+
+    for name, cur_data in gb:
+        i, j, k, l = name[0], name[1], name[2], name[3]
+        cur_time_index = name[4]
+        cur_time = cur_data['time'].iloc[0]
+        count_type_list.append([i, j, k, l, cur_data.shape[0], cur_time_index, cur_time])
+
+    collision_type_summary = pd.DataFrame(data=count_type_list,
+                                          columns=['i', 'j', 'k', 'l', 'num_events', 'time_index', 'time'])
+    return collision_type_summary
+
 
 ############### Matching with Experiment #########################
 
