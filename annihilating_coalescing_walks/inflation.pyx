@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=True
+#cython: boundscheck=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -381,7 +381,7 @@ cdef class Inflation_Lattice_Simulation(object):
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
-                 record_coal_annih_type = False, double radius=1.0, double velocity=0.01,
+                 double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
                  double jump_length=0.001, bool superdiffusive=False, record_collision_types=False,
                  **kwargs):
@@ -391,7 +391,6 @@ cdef class Inflation_Lattice_Simulation(object):
         self.debug=debug
         self.record_time_array = record_time_array
         self.verbose = verbose
-        self.record_coal_annih_type = record_coal_annih_type
 
         # Make sure the python seed is set before initializing the lattice...
         self.seed = seed
