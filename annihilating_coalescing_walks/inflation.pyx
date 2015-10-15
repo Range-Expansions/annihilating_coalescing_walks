@@ -261,6 +261,10 @@ cdef class Lattice(object):
         '''Collides two walls. Make sure the wall that was on the left
         is passed first. The left wall current_wall_index gives the current current_wall_index of the left wall.'''
 
+        # Do a quick check to make sure nothing pathological has happened...
+        if left_wall.wall_type[1] != right_wall.wall_type[0]:
+            print 'SOMETHING TERRIBLE HAS HAPPENED...INCORRECT WALL COLLISION'
+
         cdef Wall new_wall = None
         cdef long type_after_collision_left = left_wall.wall_type[0]
         cdef long type_after_collision_right = right_wall.wall_type[1]
@@ -378,6 +382,7 @@ cdef class Inflation_Lattice_Simulation(object):
 
         public double finish_time
         public int final_num_walls
+        public bool mini_debug
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
@@ -386,6 +391,9 @@ cdef class Inflation_Lattice_Simulation(object):
                  double jump_length=0.001, bool superdiffusive=False, record_collision_types=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
+
+        self.mini_debug = True
+
         self.record_every = record_every
         self.record_lattice = record_lattice
         self.debug=debug
