@@ -509,7 +509,7 @@ cdef class Inflation_Lattice_Simulation(object):
                 print 'Before jump'
                 print [z.position for z in self.lattice.walls]
                 # Also print integer positions
-                print [self.lattice.lattice_size*z.position/ANGULAR_SIZE for z in self.lattice.walls]
+                print [int(np.round(self.lattice.lattice_size*z.position/ANGULAR_SIZE)) for z in self.lattice.walls]
 
             current_wall_index = gsl_rng_uniform_int(r, self.lattice.walls.shape[0])
 
