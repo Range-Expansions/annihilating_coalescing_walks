@@ -382,7 +382,6 @@ cdef class Inflation_Lattice_Simulation(object):
 
         public double finish_time
         public int final_num_walls
-        public bool mini_debug
 
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
