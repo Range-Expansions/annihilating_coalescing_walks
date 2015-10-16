@@ -521,6 +521,8 @@ cdef class Inflation_Lattice_Simulation(object):
 
             double to_the_right
             double to_the_left
+            double[:] cur_positions
+            int cur_num_walls
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time) and not self.error_occured:
             #### Debug ####
@@ -719,19 +721,21 @@ cdef class Inflation_Lattice_Simulation(object):
 
             # Used to be a debug statement here...
             if self.look_for_errors:
-                cur_positions = [wall.position for wall in self.lattice.walls]
-                for i in range(len(cur_positions)):
+                cur_num_walls = len(self.lattice.walls)
+
+                cur_positions = np.array([wall.position for wall in self.lattice.walls])
+                for i in range(cur_num_walls - 1):
                     to_the_left = cur_positions[i]
-                    to_the_right = cur_positions[(i+1) % self.lattice.lattice_size]
+                    to_the_right = cur_positions[i + 1]
                     if to_the_left > to_the_right:
                         print 'The walls are not ordered correctly. Something terrible has happened.'
                         print 'Stopping...'
                         self.error_occured = True
                         break
 
-                for i in range(len(self.lattice.walls)):
+                for i in range(cur_num_walls):
                     to_our_right = self.lattice.walls[i].wall_type[1]
-                    to_their_left = self.lattice.walls[(i+1) % self.lattice.lattice_size].wall_type[0]
+                    to_their_left = self.lattice.walls[(i+1) % cur_num_walls].wall_type[0]
                     if to_our_right != to_their_left:
                         print 'Wall types are not correct...BAD'
                         print 'Stopping...'
