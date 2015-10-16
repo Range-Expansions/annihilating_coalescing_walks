@@ -423,6 +423,8 @@ cdef class Inflation_Lattice_Simulation(object):
             if kwargs['use_specified_or_bio_IC']:
                 print 'Replacing radius with expected one for Biological IC.' # Based on e.coli size and jump length
                 self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
+                # Slightly adjust the jump length so that floating point errors are not an issue...
+                self.jump_length *= (1. + 10.**-7) # So you move the distance to your neighbor and a little more
                 print 'Radius: ' , self.radius
         self.initial_radius = self.radius # Do this after the correction or *bad* things will happen
 
@@ -722,8 +724,9 @@ cdef class Inflation_Lattice_Simulation(object):
             # Used to be a debug statement here...
             if self.look_for_errors:
                 cur_num_walls = len(self.lattice.walls)
-
-                cur_positions = np.array([wall.position for wall in self.lattice.walls])
+                cur_positions = np.zeros(cur_num_walls, dtype=np.double)
+                for i in range(cur_num_walls):
+                    cur_positions[i] = self.lattice.walls[i].position
                 for i in range(cur_num_walls - 1):
                     to_the_left = cur_positions[i]
                     to_the_right = cur_positions[i + 1]
@@ -741,7 +744,11 @@ cdef class Inflation_Lattice_Simulation(object):
                         print 'Stopping...'
                         self.error_occured=True
                         break
-
+            if self.error_occured: # Save the current state of the simulation
+                if self.record_wall_position:
+                    if self.lattice.walls.shape[0] != 0:
+                        self.wall_position_history.append([z.position for z in self.lattice.walls])
+                        self.wall_type_history.append([z.wall_type for z in self.lattice.walls])
 
             #### Inflate! #####
             self.radius = self.initial_radius + self.velocity*cur_time
