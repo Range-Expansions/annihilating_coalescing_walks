@@ -21,8 +21,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-cdef double TOLERANCE = 10**-9 # Required for consistently comparing doubles
-
+cdef double TOLERANCE = 10.**-9. # Required for consistently comparing doubles
 
 import weakref
 
@@ -48,7 +47,7 @@ cdef class Wall(object):
         self.wall_type = wall_type
 
     def __cmp__(Wall self, Wall other):
-        cdef double delta = other.position - self.position
+        cdef double delta = self.position - other.position
         if fabs(delta) < TOLERANCE:
             return 0
         elif delta < 0:
