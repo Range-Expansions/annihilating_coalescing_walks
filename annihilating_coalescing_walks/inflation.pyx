@@ -383,15 +383,18 @@ cdef class Inflation_Lattice_Simulation(object):
         public double finish_time
         public int final_num_walls
 
+        public bool look_for_errors
+        public bool error_occured
+
+
     def __init__(Inflation_Lattice_Simulation self, double record_every = 1, bool record_lattice=True, bool debug=False,
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
                  double jump_length=0.001, bool superdiffusive=False, record_collision_types=False,
+                 look_for_errors=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
-
-        self.mini_debug = True
 
         self.record_every = record_every
         self.record_lattice = record_lattice
@@ -433,6 +436,9 @@ cdef class Inflation_Lattice_Simulation(object):
 
         self.finish_time = -1
         self.final_num_walls = -1
+
+        self.look_for_errors = look_for_errors
+        self.error_occured = False
 
         self.lattice = self.initialize_lattice(**kwargs) # Initialize the lattice after the seed is set!
 
@@ -509,8 +515,14 @@ cdef class Inflation_Lattice_Simulation(object):
             double p_of_x
 
             bool wrap_around_event = False
+            int i
+            int to_our_right
+            int to_their_left
 
-        while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time):
+            double to_the_right
+            double to_the_left
+
+        while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time) and not self.error_occured:
             #### Debug ####
             if self.debug:
                 print 'Before jump'
@@ -706,10 +718,26 @@ cdef class Inflation_Lattice_Simulation(object):
                         print 'Its neigbors actually are', actual_left_position, actual_right_position
 
             # Used to be a debug statement here...
-            cur_positions = [wall.position for wall in self.lattice.walls]
-            if sorted(cur_positions) != cur_positions:
-                print 'The walls are not ordered correctly. Something terrible has happened.'
-                print cur_positions
+            if self.look_for_errors:
+                cur_positions = [wall.position for wall in self.lattice.walls]
+                for i in range(len(cur_positions)):
+                    to_the_left = cur_positions[i]
+                    to_the_right = cur_positions[(i+1) % self.lattice.lattice_size]
+                    if to_the_left > to_the_right:
+                        print 'The walls are not ordered correctly. Something terrible has happened.'
+                        print 'Stopping...'
+                        self.error_occured = True
+                        break
+
+                for i in range(len(self.lattice.walls)):
+                    to_our_right = self.lattice.walls[i].wall_type[1]
+                    to_their_left = self.lattice.walls[(i+1) % self.lattice.lattice_size].wall_type[0]
+                    if to_our_right != to_their_left:
+                        print 'Wall types are not correct...BAD'
+                        print 'Stopping...'
+                        self.error_occured=True
+                        break
+
 
             #### Inflate! #####
             self.radius = self.initial_radius + self.velocity*cur_time
