@@ -706,13 +706,11 @@ cdef class Inflation_Lattice_Simulation(object):
                         print 'It thinks neighbors are' , left_neighbor_position , right_neighbor_position
                         print 'Its neigbors actually are', actual_left_position, actual_right_position
 
-            if self.debug:
-                cur_positions = [wall.position for wall in self.lattice.walls]
-                if sorted(cur_positions) != cur_positions:
-                    print 'The walls are not ordered correctly. Something terrible has happened.'
-                    print cur_positions
-                print
-                print
+            # Used to be a debug statement here...
+            cur_positions = [wall.position for wall in self.lattice.walls]
+            if sorted(cur_positions) != cur_positions:
+                print 'The walls are not ordered correctly. Something terrible has happened.'
+                print cur_positions
 
             #### Inflate! #####
             self.radius = self.initial_radius + self.velocity*cur_time
