@@ -12,6 +12,7 @@ import numpy as np
 cimport numpy as np
 from cython_gsl cimport *
 from cpython cimport bool
+from libc.math cimport fabs
 
 cdef unsigned int LEFT = 0
 cdef unsigned int RIGHT = 1
@@ -19,6 +20,9 @@ cdef unsigned int RIGHT = 1
 cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
+
+cdef double TOLERANCE = 10**-9 # Required for consistently comparing doubles
+
 
 import weakref
 
@@ -44,10 +48,11 @@ cdef class Wall(object):
         self.wall_type = wall_type
 
     def __cmp__(Wall self, Wall other):
-        if self.position < other.position:
-            return -1
-        elif self.position == other.position:
+        cdef double delta = other.position - self.position
+        if fabs(delta) < TOLERANCE:
             return 0
+        elif delta < 0:
+            return -1
         else:
             return 1
 
@@ -423,8 +428,7 @@ cdef class Inflation_Lattice_Simulation(object):
             if kwargs['use_specified_or_bio_IC']:
                 print 'Replacing radius with expected one for Biological IC.' # Based on e.coli size and jump length
                 self.radius = float(self.jump_length*kwargs['lattice_size'])/(2*np.pi)
-                # Slightly adjust the jump length so that floating point errors are not an issue...
-                self.jump_length *= (1. + 10.**-7) # So you move the distance to your neighbor and a little more
+                # Make sure tolerance is included in the code...you are off lattice, so when comparing keep that in mind
                 print 'Radius: ' , self.radius
         self.initial_radius = self.radius # Do this after the correction or *bad* things will happen
 
@@ -526,6 +530,8 @@ cdef class Inflation_Lattice_Simulation(object):
             double[:] cur_positions
             int cur_num_walls
 
+            double delta_distance
+
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time) and not self.error_occured:
             #### Debug ####
             if self.debug:
@@ -566,9 +572,11 @@ cdef class Inflation_Lattice_Simulation(object):
                 if adjusted_right_neighbor_position < current_wall.position: # There is a wrap around:
                     adjusted_right_neighbor_position += ANGULAR_SIZE
                     wrap_around_event = True
-                distance_between_walls = adjusted_right_neighbor_position - current_wall.position
 
-                if distance_between_walls <= distance_moved: #Collision!'
+                distance_between_walls = adjusted_right_neighbor_position - current_wall.position
+                delta_distance = distance_between_walls - distance_moved
+
+                if delta_distance < TOLERANCE: # includes negative numbers as well
                     if self.debug:
                         print 'Jump Right Collision!'
 
@@ -596,8 +604,9 @@ cdef class Inflation_Lattice_Simulation(object):
                     adjusted_left_neighbor_position -= ANGULAR_SIZE
                     wrap_around_event = True
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
+                delta_distance = distance_between_walls - distance_moved
 
-                if distance_between_walls <= distance_moved: #Collision!'
+                if delta_distance < TOLERANCE: #Collision!'
                     if self.debug:
                         print 'Jump Left Collision!'
                     if wrap_around_event:
