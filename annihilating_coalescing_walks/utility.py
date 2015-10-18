@@ -26,17 +26,13 @@ def get_log_record_times(max_order, number_per_interval=100, include_first_two_o
             else:
                 return rest_of_orders
 
-def get_simulation_df(sim, max_time_power = 8, run_sim=True):
-    if run_sim:
-        sim.run(10**max_time_power)
-
+def get_simulation_df(sim):
     # Let's make a pandas array of the results. It will be too annoying otherwise.
     wall_array = np.asarray(sim.num_walls_array)
     annih_array = np.asarray(sim.annihilation_array)
     coal_array = np.asarray(sim.coalescence_array)
     # Just make the time go from 0 to the max value to avoid problems.
     time_array = np.asarray(sim.time_array)
-
     df = pd.DataFrame(data={'wall_count': wall_array, 'annih': annih_array, 'coal':coal_array, 'time':time_array})
 
     return df
@@ -104,19 +100,19 @@ def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
     return x, combined_df
 
 def get_total_fracs(domains, num_types):
-    '''Given the domain size df, returns total fractions. Assumes sim_num, time_index, and type are all columns.'''
+    '''Given the domain size df, returns total fractions. Assumes seed, time_index, and type are all columns.'''
 
-    gb = domains.groupby(['sim_num', 'time_index', 'type'])
+    gb = domains.groupby(['seed', 'time_index', 'type'])
     total_size_df = gb.agg(np.sum)
     total_size_df['frac'] = total_size_df['angular_distance']/(2*np.pi)
 
     # Deal with fractions that have vanished...bleh
-    sims = total_size_df.reset_index()['sim_num'].unique()
+    sims = total_size_df.reset_index()['seed'].unique()
     num_times = total_size_df.reset_index()['time_index'].unique()
     type_list = range(num_types)
 
     new_idx = pd.MultiIndex.from_product([sims, num_times,  type_list],
-                                    names=['sim_num', 'time_index', 'type'])
+                                    names=['seed', 'time_index', 'type'])
     replaced_total_df = total_size_df.reindex(index=new_idx)
     replaced_total_df['frac'].fillna(0, inplace=True)
     replaced_total_df['angular_distance'].fillna(0, inplace=True)
