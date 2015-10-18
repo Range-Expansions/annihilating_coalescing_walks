@@ -41,18 +41,6 @@ def get_simulation_df(sim, max_time_power = 8, run_sim=True):
 
     return df
 
-def average_simulations(sim, num_simulations = 100, **kwargs):
-    '''Creates many simulations based off of sim and returns the combined dataframes.'''
-
-    df_list = []
-    for i in range(num_simulations):
-        new_df = get_simulation_df(sim, **kwargs)
-        new_df['sim_num'] = i
-        df_list.append(new_df)
-        new_seed = np.random.randint(0, 2**32 - 1)
-        sim.reset(new_seed)
-    return df_list
-
 ######## Averaging domain sizes from simulation ###############
 
 def get_domain_size_df(completed_sim):
@@ -114,6 +102,26 @@ def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
     combined_df = pd.concat(angular_ecdf_df_list)
 
     return x, combined_df
+
+def get_total_fracs(domains, num_types):
+    '''Given the domain size df, returns total fractions. Assumes sim_num, time_index, and type are all columns.'''
+
+    gb = domains.groupby(['sim_num', 'time_index', 'type'])
+    total_size_df = gb.agg(np.sum)
+    total_size_df['frac'] = total_size_df['angular_distance']/(2*np.pi)
+
+    # Deal with fractions that have vanished...bleh
+    sims = total_size_df.reset_index()['sim_num'].unique()
+    num_times = total_size_df.reset_index()['time_index'].unique()
+    type_list = range(num_types)
+
+    new_idx = pd.MultiIndex.from_product([sims, num_times,  type_list],
+                                    names=['sim_num', 'time_index', 'type'])
+    replaced_total_df = total_size_df.reindex(index=new_idx)
+    replaced_total_df['frac'].fillna(0, inplace=True)
+
+    return replaced_total_df
+
 
 def get_collision_type_df(sim):
 
