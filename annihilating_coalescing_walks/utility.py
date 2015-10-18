@@ -119,6 +119,7 @@ def get_total_fracs(domains, num_types):
                                     names=['sim_num', 'time_index', 'type'])
     replaced_total_df = total_size_df.reindex(index=new_idx)
     replaced_total_df['frac'].fillna(0, inplace=True)
+    replaced_total_df['angular_distance'].fillna(0, inplace=True)
 
     # Drop columns that are misleading
     desired_cols = ['angular_distance', 'frac']
