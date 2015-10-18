@@ -99,20 +99,21 @@ def get_domain_size_ecdf(domain_size_df, type='all', num_ecdf_points=360):
 
     return x, combined_df
 
-def get_total_fracs(domains, num_types):
+def get_total_fracs(sim):
     '''Given the domain size df, returns total fractions. Assumes seed, time_index, and type are all columns.'''
 
-    gb = domains.groupby(['seed', 'time_index', 'type'])
+    domains = get_domain_size_df(sim)
+
+    gb = domains.groupby(['time_index', 'type'])
     total_size_df = gb.agg(np.sum)
     total_size_df['frac'] = total_size_df['angular_distance']/(2*np.pi)
 
     # Deal with fractions that have vanished...bleh
-    sims = total_size_df.reset_index()['seed'].unique()
     num_times = total_size_df.reset_index()['time_index'].unique()
-    type_list = range(num_types)
+    type_list = range(sim.lattice.num_types)
 
-    new_idx = pd.MultiIndex.from_product([sims, num_times,  type_list],
-                                    names=['seed', 'time_index', 'type'])
+    new_idx = pd.MultiIndex.from_product([num_times,  type_list],
+                                    names=['time_index', 'type'])
     replaced_total_df = total_size_df.reindex(index=new_idx)
     replaced_total_df['frac'].fillna(0, inplace=True)
     replaced_total_df['angular_distance'].fillna(0, inplace=True)
