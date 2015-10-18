@@ -27,5 +27,5 @@ setup(
     author_email='bweinstein@seas.harvard.edu',
     description='',
     include_dirs = [cython_gsl.get_include(), np.get_include()],
-    ext_modules = cythonize(extensions, annotate=True)
+    ext_modules = cythonize(extensions, annotate=True, reload_support=True)
 )
