@@ -120,6 +120,12 @@ def get_total_fracs(domains, num_types):
     replaced_total_df = total_size_df.reindex(index=new_idx)
     replaced_total_df['frac'].fillna(0, inplace=True)
 
+    # Drop columns that are misleading
+    desired_cols = ['angular_distance', 'frac']
+    to_drop = filter(lambda x: x not in desired_cols, replaced_total_df.columns.values)
+
+    replaced_total_df.drop(to_drop, axis=1, inplace=True)
+
     return replaced_total_df
 
 
