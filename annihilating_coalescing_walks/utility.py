@@ -124,6 +124,11 @@ def get_total_fracs(sim):
 
     replaced_total_df.drop(to_drop, axis=1, inplace=True)
 
+    # Add in time values
+    replaced_total_df.reset_index(inplace=True)
+    times = np.array(sim.time_array)
+    replaced_total_df['time'] = times[replaced_total_df['time_index'].values]
+
     return replaced_total_df
 
 
