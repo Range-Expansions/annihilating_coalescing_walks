@@ -21,7 +21,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-cdef double TOLERANCE = 10.**-9. # Required for consistently comparing doubles
+cdef double TOLERANCE = 10.**-3. # Fraction of cell length to be considered for a collision.
 
 import weakref
 
@@ -48,7 +48,7 @@ cdef class Wall(object):
 
     def __cmp__(Wall self, Wall other):
         cdef double delta = self.position - other.position
-        if fabs(delta) < TOLERANCE:
+        if fabs(delta) < 10.**-12: #Double point tolerance
             return 0
         elif delta < 0:
             return -1
@@ -530,6 +530,7 @@ cdef class Inflation_Lattice_Simulation(object):
             int cur_num_walls
 
             double delta_distance
+            double cur_angular_tolerance
 
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time) and not self.error_occured:
             #### Debug ####
@@ -575,7 +576,10 @@ cdef class Inflation_Lattice_Simulation(object):
                 distance_between_walls = adjusted_right_neighbor_position - current_wall.position
                 delta_distance = distance_between_walls - distance_moved
 
-                if delta_distance < TOLERANCE: # includes negative numbers as well
+                # If you are less than tolerance cells away, you have collided
+                cur_angular_tolerance = (TOLERANCE*self.jump_length)/self.radius
+
+                if delta_distance < cur_angular_tolerance: # includes negative numbers as well
                     if self.debug:
                         print 'Jump Right Collision!'
 
@@ -605,7 +609,9 @@ cdef class Inflation_Lattice_Simulation(object):
                 distance_between_walls = current_wall.position - adjusted_left_neighbor_position
                 delta_distance = distance_between_walls - distance_moved
 
-                if delta_distance < TOLERANCE: #Collision!'
+                cur_angular_tolerance = (TOLERANCE*self.jump_length)/self.radius
+
+                if delta_distance < cur_angular_tolerance: #Collision!'
                     if self.debug:
                         print 'Jump Left Collision!'
                     if wrap_around_event:
