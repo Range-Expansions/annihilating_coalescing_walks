@@ -1,5 +1,5 @@
 #cython: profile=False
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: initializedcheck=False
 #cython: nonecheck=False
 #cython: wraparound=False
@@ -21,7 +21,7 @@ cdef unsigned int ANNIHILATE = 0
 cdef unsigned int COALESCE = 1
 cdef unsigned int NO_COLLISIONS = 2
 
-cdef double TOLERANCE = 10.**-3. # Fraction of cell length to be considered for a collision.
+cdef double TOLERANCE = 10.**-6. # Fraction of cell length to be considered for a collision.
 
 import weakref
 
@@ -138,16 +138,16 @@ cdef class Lattice(object):
         """Only to be used when initializing. If used again, terrible, terrible things will happen."""
         right_shift = np.roll(self.lattice, 1)
         wall_locations = self.lattice != right_shift
-        wall_list = []
-        wall_positions = np.where(wall_locations)[0]
-        # Convert wall positions to angle!
-        wall_positions = ANGULAR_SIZE * wall_positions/float(self.lattice_size)
-        for cur_position in wall_positions:
-            wall_list.append(self.get_new_wall(float(cur_position)))
-        wall_list = np.array(wall_list)
 
-        # Sort the wall list
-        wall_list = np.sort(wall_list, axis=None)
+        wall_list = []
+
+        wall_lattice_positions = np.where(wall_locations)[0]
+        # Convert wall positions to angle!
+        wall_theta_positions = ANGULAR_SIZE * wall_lattice_positions/float(self.lattice_size)
+        for cur_position in wall_theta_positions:
+            new_wall = self.get_new_wall(float(cur_position))
+            wall_list.append(new_wall)
+        wall_list = np.array(wall_list)
 
         # Assign neighbors
         for i in range(wall_list.shape[0]):
@@ -158,11 +158,10 @@ cdef class Lattice(object):
         cdef long left_index
         cdef long right_index
 
-        # Indicate what type of wall the wall is by looking back in the lattice
-        cdef double to_lattice_factor = float(self.lattice_size)/ANGULAR_SIZE
+        # Indicate what type of wall the wall is by looking back in the lattice!
         for i in range(wall_list.shape[0]):
             cur_wall = wall_list[i]
-            cur_position = int(np.round(to_lattice_factor * wall_list[i].position))
+            cur_position = wall_lattice_positions[i]
 
             left_index = np.mod(cur_position - 1, self.lattice_size)
             right_index = cur_position
