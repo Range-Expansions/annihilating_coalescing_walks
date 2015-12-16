@@ -12,15 +12,15 @@ def get_log_record_times(max_order, number_per_interval=100, include_first_two_o
         return None
     else:
         if max_order == 1:
-            return np.arange(1, 11)
+            return np.arange(1, 11, dtype=np.double)
         elif max_order == 2:
-            return np.arange(1, 101)
+            return np.arange(1, 101, dtype=np.double)
         else:
             first_two_orders = None
             if include_first_two_orders:
-                first_two_orders = np.arange(1, 100)
+                first_two_orders = np.arange(1, 100, dtype=np.double)
             num_octaves = max_order - 2
-            rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves)
+            rest_of_orders = np.logspace(2, max_order, number_per_interval*num_octaves, dtype=np.double)
             if include_first_two_orders:
                 return np.hstack((first_two_orders, rest_of_orders))
             else:
