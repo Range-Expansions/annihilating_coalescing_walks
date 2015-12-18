@@ -106,7 +106,7 @@ cdef class Lattice(object):
 
     def __init__(Lattice self, long lattice_size, long num_types=3, bool debug=False,
                 long[:] lattice=None, bool use_default_IC=True, bool use_random_float_IC=False,
-                 bool use_specified_or_bio_IC=False):
+                 bool use_specified_or_bio_IC=True):
 
         self.lattice_size = lattice_size
         self.num_types=num_types
