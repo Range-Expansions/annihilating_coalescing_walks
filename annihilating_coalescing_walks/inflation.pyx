@@ -381,7 +381,8 @@ cdef class Inflation_Lattice_Simulation(object):
         public double jump_length
         public double lattice_spacing_output
         public double[:] output_bins_space
-        public double superdiffusive
+        public bool do_superdiffusive
+        public double variance_scaling
 
         public double finish_time
         public int final_num_walls
@@ -394,7 +395,7 @@ cdef class Inflation_Lattice_Simulation(object):
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
-                 double jump_length=0.001, double superdiffusive=0.0, record_collision_types=False,
+                 double jump_length=0.001, bool do_superdiffusive=False, double variance_scaling=0.0, record_collision_types=False,
                  look_for_errors=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
@@ -430,7 +431,8 @@ cdef class Inflation_Lattice_Simulation(object):
                 print 'Radius: ' , self.radius
         self.initial_radius = self.radius # Do this after the correction or *bad* things will happen
 
-        self.superdiffusive = superdiffusive
+        self.do_superdiffusive = do_superdiffusive
+        self.variance_scaling = variance_scaling
 
         self.lattice_spacing_output = lattice_spacing_output
         self.output_bins_space = None
@@ -548,12 +550,12 @@ cdef class Inflation_Lattice_Simulation(object):
             delta_t = 1./self.lattice.walls.shape[0]
 
             #### Determine how far you move ####
-            if self.superdiffusive != 0.0:
+            if not self.do_superdiffusive:
                 distance_moved = self.jump_length/self.radius
             else:
                 # Draw from the superdiffusive distribution and move
                 random_num = gsl_rng_uniform(r)
-                p_of_x = (1-random_num)**(-self.superdiffusive/2.)
+                p_of_x = (1-random_num)**(-self.variance_scaling/2.)
                 distance_moved = self.jump_length * p_of_x / self.radius
 
             #### Choose a jump direction ####
