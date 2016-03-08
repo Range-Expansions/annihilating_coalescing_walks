@@ -76,6 +76,9 @@ cdef class Selection_Wall(Wall):
         Wall.__init__(self, position, wall_neighbors = wall_neighbors, wall_type = wall_type)
         self.delta_prob_dict = delta_prob_dict
 
+    cdef double get_jump_prob(Selection_Wall self):
+        return self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
+
     cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
         # Get the change in probability of jumping left and right.
 
@@ -533,6 +536,12 @@ cdef class Inflation_Lattice_Simulation(object):
             double delta_distance
             double cur_angular_tolerance
 
+            cdef double c = self.jump_length/np.sqrt(2)
+            double alpha = 0
+
+        if self.do_superdiffusive:
+            alpha = 2./self.variance_scaling
+
         while (self.lattice.walls.shape[0] > 1) and (cur_time <= max_time) and not self.error_occured:
             #### Debug ####
             if self.debug:
@@ -553,15 +562,22 @@ cdef class Inflation_Lattice_Simulation(object):
             if not self.do_superdiffusive:
                 distance_moved = self.jump_length/self.radius
             else:
-                # Draw from the superdiffusive distribution and move
-                random_num = gsl_rng_uniform(r)
-                p_of_x = (1-random_num)**(-self.variance_scaling/2.)
-                distance_moved = self.jump_length * p_of_x / self.radius
+                # Diffusive step
+                distance_moved = gsl_ran_levy(r, c, alpha)
+                # Selection step
+                distance_moved += current_wall.get_jump_prob() * self.jump_length
+                jump_direction = np.sign(distance_moved)
+                # This is really stupid but I'm too scared to change it at this point
+                if jump_direction < 0: jump_direction = LEFT
+                else: jump_direction = RIGHT
+                # Make sure that the distance moved is a magnitude
+                distance_moved = abs(distance_moved)
 
             #### Choose a jump direction ####
             wrap_around_event = False
 
-            jump_direction = current_wall.get_jump_direction(r)
+            if not self.do_superdiffusive:
+                jump_direction = current_wall.get_jump_direction(r)
             if self.debug:
                 if jump_direction is LEFT:
                     print 'Jump left!'
