@@ -381,7 +381,7 @@ cdef class Inflation_Lattice_Simulation(object):
         public double jump_length
         public double lattice_spacing_output
         public double[:] output_bins_space
-        public bool superdiffusive
+        public double superdiffusive
 
         public double finish_time
         public int final_num_walls
@@ -394,7 +394,7 @@ cdef class Inflation_Lattice_Simulation(object):
                  unsigned long int seed = 0, record_time_array = None, bool verbose=True,
                  double radius=1.0, double velocity=0.01,
                  double lattice_spacing_output=ANGULAR_SIZE/180., bool record_wall_position=False,
-                 double jump_length=0.001, bool superdiffusive=False, record_collision_types=False,
+                 double jump_length=0.001, double superdiffusive=0.0, record_collision_types=False,
                  look_for_errors=False,
                  **kwargs):
         '''The idea here is the kwargs initializes the lattice.'''
@@ -548,12 +548,12 @@ cdef class Inflation_Lattice_Simulation(object):
             delta_t = 1./self.lattice.walls.shape[0]
 
             #### Determine how far you move ####
-            if not self.superdiffusive:
+            if self.superdiffusive != 0.0:
                 distance_moved = self.jump_length/self.radius
             else:
                 # Draw from the superdiffusive distribution and move
                 random_num = gsl_rng_uniform(r)
-                p_of_x = (1-random_num)**(-2./3.)
+                p_of_x = (1-random_num)**(-self.superdiffusive/2.)
                 distance_moved = self.jump_length * p_of_x / self.radius
 
             #### Choose a jump direction ####
