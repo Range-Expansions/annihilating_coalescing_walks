@@ -567,9 +567,10 @@ cdef class Inflation_Lattice_Simulation(object):
                 distance_moved = self.jump_length/self.radius
             else:
                 # Diffusive step
-                random_num = gsl_rng_uniform(r)
-                p_of_x = (1-random_num)**(-self.variance_scaling/2.)
-                distance_moved = self.jump_length * p_of_x / self.radius
+                #random_num = gsl_rng_uniform(r)
+                #p_of_x = (1-random_num)**(-self.variance_scaling/2.)
+                #distance_moved = self.jump_length * p_of_x / self.radius
+                distance_moved = gsl_ran_levy(r, .001*c/self.radius, 2./alpha)
                 # Selection step
                 distance_moved -= (2*current_wall.get_jump_prob() * self.jump_length)/self.radius
                 jump_sign = np.sign(distance_moved)
