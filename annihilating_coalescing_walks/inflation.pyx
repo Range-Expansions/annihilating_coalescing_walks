@@ -63,6 +63,9 @@ cdef class Wall(object):
         else:
             return LEFT
 
+    cdef double get_jump_prob(Wall self):
+        return 0.0
+
 cdef class Selection_Wall(Wall):
     '''One must define which wall gets a selective advantage.'''
 
@@ -536,8 +539,9 @@ cdef class Inflation_Lattice_Simulation(object):
             double delta_distance
             double cur_angular_tolerance
 
-            cdef double c = self.jump_length/np.sqrt(2)
+            double c = self.jump_length/np.sqrt(2)
             double alpha = 0
+            int jump_sign
 
         if self.do_superdiffusive:
             alpha = 2./self.variance_scaling
@@ -565,11 +569,11 @@ cdef class Inflation_Lattice_Simulation(object):
                 # Diffusive step
                 distance_moved = gsl_ran_levy(r, c, alpha)
                 # Selection step
-                distance_moved += current_wall.get_jump_prob() * self.jump_length
-                jump_direction = np.sign(distance_moved)
+                distance_moved += 2*current_wall.get_jump_prob() * self.jump_length
+                jump_sign = np.sign(distance_moved)
                 # This is really stupid but I'm too scared to change it at this point
-                if jump_direction < 0: jump_direction = LEFT
-                else: jump_direction = RIGHT
+                if jump_sign < 0: jump_direction = LEFT
+                else: jump_sign = RIGHT
                 # Make sure that the distance moved is a magnitude
                 distance_moved = abs(distance_moved)
 
