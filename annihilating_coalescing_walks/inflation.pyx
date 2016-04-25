@@ -79,10 +79,10 @@ cdef class Selection_Wall(Wall):
     cdef unsigned int get_jump_direction(Selection_Wall self, gsl_rng *r):
         # Get the change in probability of jumping left and right.
 
-        cdef double right_prob_change = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
+        cdef double s = self.delta_prob_dict[self.wall_type[0], self.wall_type[1]]
 
         cdef double random_num = gsl_rng_uniform(r)
-        if random_num < 0.5 + right_prob_change:
+        if random_num < 0.5 * (1 + s):
             return RIGHT
         else:
             return LEFT
