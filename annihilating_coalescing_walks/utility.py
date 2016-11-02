@@ -181,6 +181,92 @@ def get_collision_type_count_df(sim):
                                           columns=['i', 'j', 'k', 'l', 'num_events', 'time_index', 'time'])
     return collision_type_summary
 
+###### Obtaining Two-point correlation functions ######
+
+def get_hetero_from_lattice(input_lattice):
+    """From the lattice at multiple time points, get the heterozygosity"""
+
+    h_values = []
+    for lattice in input_lattice:
+
+        ### Variables required for most functions ###
+        values = lattice
+        convolve_list = lattice.copy()
+
+        # Number of points to calcualte
+        num_points = lattice.shape[0]
+        delta_theta_list = -1. * np.ones(num_points, dtype=np.double)
+        mean_list = -1. * np.ones(num_points, dtype=np.double)
+
+        theta_step = 2 * np.pi / float(num_points)
+        for i in range(num_points):
+            if i == 0:
+                delta_theta_list[i] = 0
+            else:
+                delta_theta_list[i] = delta_theta_list[i - 1] + theta_step
+
+            # Calculate the heterozygosity
+            multiplied = values != convolve_list
+            av_channel_hetero = multiplied.mean(axis=0)
+            h = av_channel_hetero.sum()
+            mean_list[i] = h
+            convolve_list = np.roll(convolve_list, 1, axis=0)
+
+        # Return theta between -pi and pi
+        delta_theta_list[delta_theta_list > np.pi] -= 2 * np.pi
+
+        # Now sort based on theta
+        sorted_indices = np.argsort(delta_theta_list)
+        delta_theta_list = delta_theta_list[sorted_indices]
+        mean_list = mean_list[sorted_indices]
+
+        h_values.append(mean_list)
+
+    h_values = np.array(h_values)
+    return h_values, delta_theta_list
+
+
+def get_Fii_from_lattice(input_lattice, strain_i):
+    # Get lattice at the last time
+    fij_values = []
+    for lattice in input_lattice:
+
+        ### Variables required for most functions ###
+        values = lattice.copy()
+
+        values = (values == strain_i)
+        convolve_list = values.copy()
+
+        # Number of points to calcualte
+        num_points = lattice.shape[0]
+        delta_theta_list = -1. * np.ones(num_points, dtype=np.double)
+        mean_list = -1. * np.ones(num_points, dtype=np.double)
+
+        theta_step = 2 * np.pi / float(num_points)
+        for i in range(num_points):
+            if i == 0:
+                delta_theta_list[i] = 0
+            else:
+                delta_theta_list[i] = delta_theta_list[i - 1] + theta_step
+
+            # Calculate fij
+            multiplied = values * convolve_list
+            av_channel_fij = multiplied.mean(axis=0)
+            mean_list[i] = av_channel_fij
+            convolve_list = np.roll(convolve_list, 1, axis=0)
+
+        # Return theta between -pi and pi
+        delta_theta_list[delta_theta_list > np.pi] -= 2 * np.pi
+
+        # Now sort based on theta
+        sorted_indices = np.argsort(delta_theta_list)
+        delta_theta_list = delta_theta_list[sorted_indices]
+        mean_list = mean_list[sorted_indices]
+
+        fij_values.append(mean_list)
+
+    fij_values = np.array(fij_values)
+    return fij_values, delta_theta_list
 
 ############### Matching with Experiment #########################
 
