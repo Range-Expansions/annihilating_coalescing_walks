@@ -268,6 +268,50 @@ def get_Fii_from_lattice(input_lattice, strain_i):
     fij_values = np.array(fij_values)
     return fij_values, delta_theta_list
 
+def get_Fij_from_lattice(input_lattice, strain_i, strain_j):
+    # Get lattice at the last time
+    fij_values = []
+    for lattice in input_lattice:
+
+        ### Variables required for most functions ###
+        values_i = (lattice == strain_i)
+        convolve_list_i = values_i.copy()
+
+        values_j = (lattice == strain_j)
+        convolve_list_j = values_j.copy()
+
+        # Number of points to calcualte
+        num_points = lattice.shape[0]
+        delta_theta_list = -1. * np.ones(num_points, dtype=np.double)
+        mean_list = -1. * np.ones(num_points, dtype=np.double)
+
+        theta_step = 2 * np.pi / float(num_points)
+        for i in range(num_points):
+            if i == 0:
+                delta_theta_list[i] = 0
+            else:
+                delta_theta_list[i] = delta_theta_list[i - 1] + theta_step
+
+            # Calculate fij
+            multiplied = values_i*convolve_list_j + values_j*convolve_list_i
+            mean_list[i] = multiplied.mean(axis=0)
+
+            convolve_list_i[...] = np.roll(convolve_list_i, 1, axis=0)
+            convolve_list_j[...] = np.roll(convolve_list_j, 1, axis=0)
+
+        # Return theta between -pi and pi
+        delta_theta_list[delta_theta_list > np.pi] -= 2 * np.pi
+
+        # Now sort based on theta
+        sorted_indices = np.argsort(delta_theta_list)
+        delta_theta_list = delta_theta_list[sorted_indices]
+        mean_list = mean_list[sorted_indices]
+
+        fij_values.append(mean_list)
+
+    fij_values = np.array(fij_values)
+    return fij_values, delta_theta_list
+
 ############### Matching with Experiment #########################
 
 # These are the parameters when the random walk approximation begins to hold
