@@ -292,8 +292,8 @@ def get_Fij_from_lattice(input_lattice, strain_i, strain_j):
             else:
                 delta_theta_list[i] = delta_theta_list[i - 1] + theta_step
 
-            # Calculate fij
-            multiplied = values_i*convolve_list_j + values_j*convolve_list_i
+            # Calculate fij...need the 0.5 to match my definition in the paper
+            multiplied = .5*(values_i*convolve_list_j + values_j*convolve_list_i)
             mean_list[i] = multiplied.mean(axis=0)
 
             convolve_list_i[...] = np.roll(convolve_list_i, 1, axis=0)
