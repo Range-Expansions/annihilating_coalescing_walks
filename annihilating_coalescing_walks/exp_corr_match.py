@@ -17,12 +17,16 @@ v = a # Distance that the lattice expands per generation
 
 class Exp_Corr_Matcher(object):
     def __init__(self, Ls_experiment, Ls_sim, num_colors=3):
+        """Ls_experiment is used to set kappa, Ls_sim is used to adjust the simulation
+        s value to match kappa."""
+
         # Experimental values
         self.Ls_experiment = Ls_experiment
         self.L_div_Ls_experiment = L_experiment_values / Ls_experiment
 
         # kappa is matched between experiment & theory
         self.kappa = np.sqrt(Ro_experiment / Ls_experiment)
+        print 'kappa:', self.kappa
 
         # Simulation values
         self.Ls_sim = Ls_sim
