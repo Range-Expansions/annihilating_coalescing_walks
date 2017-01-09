@@ -6,14 +6,17 @@ import utility as acwu
 import inflation as acwi
 
 
-# Measured values
+#### Measured values ####
 Dw_experiment = 0.100
 Ro_experiment = 3.5
 # Where I recorded the two-point correlation functions
 L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 6.5])
 
+#### Simulation values ####
 a = 0.001 # Size of a "lattice site" in mm (units of the simulation)
 v = a # Distance that the lattice expands per generation
+
+Dw_sim = a/2. # Simulation diffusion constant per length expanded
 
 class Exp_Corr_Matcher(object):
     def __init__(self, Ls_experiment, Ls_sim, num_colors=3):
@@ -33,9 +36,14 @@ class Exp_Corr_Matcher(object):
         self.s_sim = np.sqrt(a/(2*Ls_sim))
         self.No_sim = np.pi*(self.kappa/self.s_sim)**2
         self.No_sim = int(round(self.No_sim))
+
         print 'No_sim is:', self.No_sim
 
         self.num_colors = num_colors
+
+        # Calculate what the the characteristic angular correlation length is, theta_c
+        self.Ro_sim = (self.No_sim*a)/(2*np.pi)
+        self.theta_c = np.sqrt((8*Dw_sim)/self.Ro_sim)
 
         print 'Initializing simulation...'
         self.sim = self.get_sim()
