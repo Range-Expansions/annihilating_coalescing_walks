@@ -91,3 +91,21 @@ class Exp_Corr_Matcher(object):
             **kwargs)
 
         return sim
+
+from scipy.special import erfc, erf
+
+def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
+    Fio = 1. / q
+    Fjo = 1. / q
+
+    theta_bins = np.linspace(-2* np.pi, 2 * np.pi, num_theta_bins)
+    if not rescale_by_theta_c:
+        arg = (Ro_experiment / (8 * Dw_experiment))
+    else:
+        arg = 1.0
+    arg_root = np.sqrt(arg * (1 + Ro_experiment/ L))
+    if i == j:  # Fii
+        result = Fio * (1 - (1 - Fio) * erf(np.abs(theta_bins) * arg_root))
+    else: # Fij
+        result = Fio * Fjo * erf(np.abs(theta_bins) * arg_root)
+    return theta_bins, result
