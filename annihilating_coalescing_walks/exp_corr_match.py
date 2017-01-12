@@ -92,6 +92,85 @@ class Exp_Corr_Matcher(object):
 
         return sim
 
+class q4_Exp_Corr_Matcher(object):
+    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, delta_prob_dict=None):
+        """Ls_experiment is used to set kappa, Ls_sim is used to adjust the simulation
+        s value to match kappa."""
+
+        self.delta_prob_dict = delta_prob_dict
+
+        # Experimental values
+        self.Ls_experiment = Ls_experiment
+        self.L_div_Ls_experiment = L_experiment_values / Ls_experiment
+
+        # kappa is matched between experiment & theory
+        self.kappa = np.sqrt(Ro_experiment / Ls_experiment)
+        print 'kappa:', self.kappa
+
+        # Simulation values
+        self.Ls_sim = Ls_sim
+        self.s_sim = np.sqrt(a/(2*Ls_sim))
+        self.No_sim = np.pi*(self.kappa/self.s_sim)**2
+        self.No_sim = int(round(self.No_sim))
+
+        print 'No_sim is:', self.No_sim
+
+        self.num_colors = num_colors
+
+        # Calculate what the the characteristic angular correlation length is, theta_c
+        self.Ro_sim = (self.No_sim*a)/(2*np.pi)
+        self.theta_c = np.sqrt((8*Dw_sim)/self.Ro_sim)
+
+        print 'Initializing simulation...'
+        self.sim = self.get_sim()
+        print 'Done!'
+
+    def get_sim(self, **kwargs):
+        # Convert into simulation units
+        num_types = self.num_colors
+        seed = np.random.randint(0, 2 ** 32)
+
+        # Match L/Ls between experiment and simulation
+        L_values = self.L_div_Ls_experiment * self.Ls_sim
+
+        record_time_array = L_values / v
+        # record_time_array = record_time_array[1:]
+
+        # 1 will have the selective disadvantage, like our experiments
+
+        if self.delta_prob_dict is None:
+
+            self.delta_prob_dict = {}
+
+            ##########################################################
+            ##### These parameters should be checked & fine tuned! ###
+            ##########################################################
+
+            # Selective disadvantage for one of them...strain 1, like in the experiments
+            for i in range(num_types):
+                for j in range(num_types):
+                    if i != j:
+                        if i == 1:
+                            self.delta_prob_dict[i, j] = -self.s_sim
+                        elif j == 1:
+                            self.delta_prob_dict[i, j] = self.s_sim
+                        else:
+                            self.delta_prob_dict[i, j] = 0
+
+        sim = acwi.Selection_Inflation_Lattice_Simulation(
+            self.delta_prob_dict,
+            lattice_size=self.No_sim,
+            num_types=num_types,
+            seed=seed,
+            record_time_array=record_time_array,
+            velocity=v,
+            use_specified_or_bio_IC=True,
+            record_lattice=True,
+            lattice_spacing_output=2 * np.pi / (360 * 8.),
+            **kwargs)
+
+        return sim
+
 from scipy.special import erfc, erf
 
 def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
@@ -109,3 +188,4 @@ def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=Fa
     else: # Fij
         result = Fio * Fjo * erf(np.abs(theta_bins) * arg_root)
     return theta_bins, result
+
