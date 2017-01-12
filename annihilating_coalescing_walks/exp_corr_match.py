@@ -19,7 +19,7 @@ v = a # Distance that the lattice expands per generation
 Dw_sim = a/2. # Simulation diffusion constant per length expanded
 
 class Exp_Corr_Matcher(object):
-    def __init__(self, Ls_experiment, Ls_sim, num_colors=3):
+    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, unequal_ic = None):
         """Ls_experiment is used to set kappa, Ls_sim is used to adjust the simulation
         s value to match kappa."""
 
@@ -46,10 +46,16 @@ class Exp_Corr_Matcher(object):
         self.theta_c = np.sqrt((8*Dw_sim)/self.Ro_sim)
 
         print 'Initializing simulation...'
-        self.sim = self.get_sim()
+        self.unequal_ic = unequal_ic
+        if self.unequal_ic is not None:
+            strains = np.arange(self.num_colors)
+            initial_lattice = np.random.choice(strains, size=self.No_sim, replace=True, p=self.unequal_ic)
+            self.sim = self.get_sim(lattice_ic=initial_lattice)
+        else:
+            self.sim = self.get_sim()
         print 'Done!'
 
-    def get_sim(self, **kwargs):
+    def get_sim(self, lattice_ic = None, **kwargs):
         # Convert into simulation units
         num_types = self.num_colors
         seed = np.random.randint(0, 2 ** 32)
@@ -78,17 +84,31 @@ class Exp_Corr_Matcher(object):
                     else:
                         delta_prob_dict[i, j] = 0
 
-        sim = acwi.Selection_Inflation_Lattice_Simulation(
-            delta_prob_dict,
-            lattice_size=self.No_sim,
-            num_types=num_types,
-            seed=seed,
-            record_time_array=record_time_array,
-            velocity=v,
-            use_specified_or_bio_IC=True,
-            record_lattice=True,
-            lattice_spacing_output=2 * np.pi / (360 * 8.),
-            **kwargs)
+        if lattice_ic is None:
+            sim = acwi.Selection_Inflation_Lattice_Simulation(
+                delta_prob_dict,
+                lattice_size=self.No_sim,
+                num_types=num_types,
+                seed=seed,
+                record_time_array=record_time_array,
+                velocity=v,
+                use_specified_or_bio_IC=True,
+                record_lattice=True,
+                lattice_spacing_output=2 * np.pi / (360 * 8.),
+                **kwargs)
+        else:
+            sim = acwi.Selection_Inflation_Lattice_Simulation(
+                delta_prob_dict,
+                lattice_size=self.No_sim,
+                num_types=num_types,
+                seed=seed,
+                record_time_array=record_time_array,
+                velocity=v,
+                use_specified_or_bio_IC=True,
+                record_lattice=True,
+                lattice=lattice_ic,
+                lattice_spacing_output=2 * np.pi / (360 * 8.),
+                **kwargs)
 
         return sim
 
@@ -173,10 +193,12 @@ class q4_Exp_Corr_Matcher(object):
 
 from scipy.special import erfc, erf
 
-def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
+def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=False, Fio = None, Fjo = None):
     """Get the neutral prediction for Fij"""
-    Fio = 1. / q
-    Fjo = 1. / q
+    if Fio is None:
+        Fio = 1./q
+    if Fjo is None:
+        Fjo = 1./q
 
     theta_bins = np.linspace(-2* np.pi, 2 * np.pi, num_theta_bins)
     if not rescale_by_theta_c:
