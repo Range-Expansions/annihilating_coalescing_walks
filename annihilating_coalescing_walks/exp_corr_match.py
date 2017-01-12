@@ -174,6 +174,7 @@ class q4_Exp_Corr_Matcher(object):
 from scipy.special import erfc, erf
 
 def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
+    """Get the neutral prediction for Fij"""
     Fio = 1. / q
     Fjo = 1. / q
 
@@ -189,3 +190,31 @@ def get_Fij_prediction(i, j, L, num_theta_bins=1000, q=3., rescale_by_theta_c=Fa
         result = Fio * Fjo * erf(np.abs(theta_bins) * arg_root)
     return theta_bins, result
 
+
+def get_H_prediction(L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
+    Ho = 1. -  1/q
+
+    theta_bins = np.linspace(-2* np.pi, 2 * np.pi, num_theta_bins)
+    if not rescale_by_theta_c:
+        arg = (Ro_experiment / (8 * Dw_experiment))
+    else:
+        arg = 1.0
+    arg_root = np.sqrt(arg * (1 + Ro_experiment/ L))
+
+    result = Ho * erf(np.abs(theta_bins) * arg_root)
+    return theta_bins, result
+
+def get_Fii_sum_prediction(L, num_theta_bins=1000, q=3., rescale_by_theta_c=False):
+    """Get the neutral prediction for Fij"""
+    Fio = 1. / q
+    Fjo = 1. / q
+
+    theta_bins = np.linspace(-2* np.pi, 2 * np.pi, num_theta_bins)
+    if not rescale_by_theta_c:
+        arg = (Ro_experiment / (8 * Dw_experiment))
+    else:
+        arg = 1.0
+    arg_root = np.sqrt(arg * (1 + Ro_experiment/ L))
+    result = q*Fio * (1 - (1 - Fio) * erf(np.abs(theta_bins) * arg_root))
+
+    return theta_bins, result
