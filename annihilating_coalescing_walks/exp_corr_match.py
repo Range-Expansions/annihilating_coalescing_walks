@@ -19,9 +19,11 @@ v = a # Distance that the lattice expands per generation
 Dw_sim = a/2. # Simulation diffusion constant per length expanded
 
 class Exp_Corr_Matcher(object):
-    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, unequal_ic = None):
+    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, unequal_ic=None, delta_prob_dict=None):
         """Ls_experiment is used to set kappa, Ls_sim is used to adjust the simulation
         s value to match kappa."""
+
+        self.delta_prob_dict = delta_prob_dict
 
         # Experimental values
         self.Ls_experiment = Ls_experiment
@@ -67,26 +69,27 @@ class Exp_Corr_Matcher(object):
         # record_time_array = record_time_array[1:]
 
         # 1 will have the selective disadvantage, like our experiments
-        delta_prob_dict = {}
+        if self.delta_prob_dict is None: # Populate
+            ##########################################################
+            ##### These parameters should be checked & fine tuned! ###
+            ##########################################################
 
-        ##########################################################
-        ##### These parameters should be checked & fine tuned! ###
-        ##########################################################
+            self.delta_prob_dict = {}
 
-        # Selective disadvantage for one of them...strain 1, like in the experiments
-        for i in range(num_types):
-            for j in range(num_types):
-                if i != j:
-                    if i == 1:
-                        delta_prob_dict[i, j] = -self.s_sim
-                    elif j == 1:
-                        delta_prob_dict[i, j] = self.s_sim
-                    else:
-                        delta_prob_dict[i, j] = 0
+            # Selective disadvantage for one of them...strain 1, like in the experiments
+            for i in range(num_types):
+                for j in range(num_types):
+                    if i != j:
+                        if i == 1:
+                            self.delta_prob_dict[i, j] = -self.s_sim
+                        elif j == 1:
+                            self.delta_prob_dict[i, j] = self.s_sim
+                        else:
+                            self.delta_prob_dict[i, j] = 0
 
         if lattice_ic is None:
             sim = acwi.Selection_Inflation_Lattice_Simulation(
-                delta_prob_dict,
+                self.delta_prob_dict,
                 lattice_size=self.No_sim,
                 num_types=num_types,
                 seed=seed,
@@ -98,7 +101,7 @@ class Exp_Corr_Matcher(object):
                 **kwargs)
         else:
             sim = acwi.Selection_Inflation_Lattice_Simulation(
-                delta_prob_dict,
+                self.delta_prob_dict,
                 lattice_size=self.No_sim,
                 num_types=num_types,
                 seed=seed,
