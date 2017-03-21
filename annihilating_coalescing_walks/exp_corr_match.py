@@ -10,7 +10,7 @@ import inflation as acwi
 Dw_experiment = 0.100
 Ro_experiment = 3.5
 # Where I recorded the two-point correlation functions
-L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 5.5, 6.5])
+L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 6.5])
 
 #### Simulation values ####
 a = 0.001 # Size of a "lattice site" in mm (units of the simulation)
