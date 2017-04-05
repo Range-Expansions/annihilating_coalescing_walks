@@ -10,7 +10,8 @@ import inflation as acwi
 Dw_experiment = 0.100
 Ro_experiment = 3.5
 # Where I recorded the two-point correlation functions
-L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 5.5, 6.5])
+#L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 5.5, 6.5])
+L_experiment_values = np.array([0.5, 1.5, 2.5, 4.5, 6.5])
 
 #### Simulation values ####
 a = 0.001 # Size of a "lattice site" in mm (units of the simulation)
@@ -19,7 +20,8 @@ v = a # Distance that the lattice expands per generation
 Dw_sim = a/2. # Simulation diffusion constant per length expanded
 
 class Exp_Corr_Matcher(object):
-    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, unequal_ic=None, delta_prob_dict=None):
+    def __init__(self, Ls_experiment, Ls_sim, num_colors=3, unequal_ic=None, delta_prob_dict=None,
+                 L_to_record=None, record_wall_position=False):
         """Ls_experiment is used to set kappa, Ls_sim is used to adjust the simulation
         s value to match kappa."""
 
@@ -27,7 +29,12 @@ class Exp_Corr_Matcher(object):
 
         # Experimental values
         self.Ls_experiment = Ls_experiment
-        self.L_div_Ls_experiment = L_experiment_values / Ls_experiment
+        self.L_to_record = L_to_record
+        if self.L_to_record is None:
+            self.L_to_record  = L_experiment_values
+        self.L_div_Ls_experiment = self.L_to_record / Ls_experiment
+
+        self.record_wall_position = record_wall_position
 
         # kappa is matched between experiment & theory
         self.kappa = np.sqrt(Ro_experiment / Ls_experiment)
@@ -52,9 +59,9 @@ class Exp_Corr_Matcher(object):
         if self.unequal_ic is not None:
             strains = np.arange(self.num_colors)
             initial_lattice = np.random.choice(strains, size=self.No_sim, replace=True, p=self.unequal_ic)
-            self.sim = self.get_sim(lattice_ic=initial_lattice)
+            self.sim = self.get_sim(lattice_ic=initial_lattice, record_wall_position = self.record_wall_position)
         else:
-            self.sim = self.get_sim()
+            self.sim = self.get_sim(record_wall_position = self.record_wall_position)
         print 'Done!'
 
     def get_sim(self, lattice_ic = None, **kwargs):
